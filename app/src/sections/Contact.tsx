@@ -76,10 +76,10 @@ export function Contact() {
                 <Mail className="w-5 h-5 text-white" />
               </div>
               <a
-                href="mailto:contact@chenmyuan.dev"
+                href="mailto:speedkingblock@hotmail.com"
                 className="text-white hover:text-[#9ca3af] transition-colors"
               >
-                contact@chenmyuan.dev
+                speedkingblock@hotmail.com
               </a>
             </div>
 
