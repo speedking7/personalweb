@@ -109,7 +109,7 @@ export function Home() {
               <div className="relative">
                 <div className="w-64 h-64 md:w-80 md:h-80 rounded-full overflow-hidden bg-white shadow-lg">
                   <img
-                    src="/personalweb/avatar.jpg"
+                    src="/avatar.jpg"
                     alt="瀛同学"
                     className="w-full h-full object-cover"
                   />
