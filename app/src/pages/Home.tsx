@@ -17,7 +17,7 @@ const stats = [
 const socialLinks = [
   { icon: Github, href: 'https://github.com', label: 'GitHub' },
   { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
-  { icon: Mail, href: 'mailto:contact@chenmyuan.dev', label: 'Email' },
+  { icon: Mail, href: 'mailto:speedkingblock@hotmail.com', label: 'Email' },
 ];
 
 export function Home() {

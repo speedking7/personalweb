@@ -64,7 +64,7 @@ const hobbies = [
 const socialLinks = [
   { icon: Github, href: 'https://github.com', label: 'GitHub' },
   { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
-  { icon: Mail, href: 'mailto:contact@chenmyuan.dev', label: 'Email' },
+  { icon: Mail, href: 'mailto:speedkingblock@hotmail.com', label: 'Email' },
 ];
 
 export function About() {
@@ -106,7 +106,7 @@ export function About() {
                 </span>
                 <span className="flex items-center gap-1">
                   <Mail className="w-4 h-4" />
-                  contact@chenmyuan.dev
+                  speedkingblock@hotmail.com
                 </span>
               </div>
               <div className="flex justify-center md:justify-start gap-3">
