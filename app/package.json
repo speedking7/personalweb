@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "deploy": "npm run build && gh-pages -d dist -b gh-pages -r git@github.com:speedking7/personalweb.git",
+    "deploy": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
