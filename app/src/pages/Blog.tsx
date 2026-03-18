@@ -133,7 +133,7 @@ export function Blog() {
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <div className="flex items-center gap-4 mb-4">
                 <img
-                  src="/avatar.jpg"
+                  src="avatar.jpg"
                   alt="瀛同学"
                   className="w-16 h-16 rounded-full object-cover"
                 />

@@ -81,7 +81,7 @@ export function About() {
             <div className="relative">
               <div className="w-40 h-40 rounded-2xl overflow-hidden shadow-lg">
                 <img
-                  src="/avatar.jpg"
+                  src="avatar.jpg"
                   alt="瀛同学"
                   className="w-full h-full object-cover"
                 />
