@@ -1,19 +1,47 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, Tag, Search } from 'lucide-react';
+import { Calendar, Clock, Tag, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { blogPosts, categories, tags } from '@/data/blogs';
+import { getBlogPosts, getCategories, getTags, type BlogPost } from '@/data/blogs';
 
 export function Blog() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<string[]>(['全部']);
+  const [tags, setTags] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState('全部');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    // 加载博客数据
+    async function loadBlogData() {
+      try {
+        setLoading(true);
+        const [loadedPosts, loadedCategories, loadedTags] = await Promise.all([
+          getBlogPosts(),
+          getCategories(),
+          getTags(),
+        ]);
+        setPosts(loadedPosts);
+        setCategories(loadedCategories);
+        setTags(loadedTags);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load blog data:', err);
+        setError('加载博客失败，请稍后重试');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadBlogData();
   }, []);
 
-  const filteredPosts = blogPosts.filter((post) => {
+  const filteredPosts = posts.filter((post) => {
     const matchesCategory =
       activeCategory === '全部' || post.category === activeCategory;
     const matchesTag = !activeTag || post.tags.includes(activeTag);
@@ -67,9 +95,31 @@ export function Blog() {
               </div>
             </div>
 
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#6b6b6b] mb-4" />
+                <p className="text-[#6b6b6b]">加载中...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className="text-center py-16 bg-white rounded-xl shadow-sm">
+                <p className="text-red-500 mb-4">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-[#1a1a1a] text-white rounded-lg hover:bg-[#333] transition-colors"
+                >
+                  重试
+                </button>
+              </div>
+            )}
+
             {/* Posts List */}
-            <div className="space-y-4">
-              {filteredPosts.map((post) => (
+            {!loading && !error && (
+              <div className="space-y-4">
+                {filteredPosts.map((post) => (
                 <Link
                   key={post.id}
                   to={`/blog/${post.id}`}
@@ -104,7 +154,7 @@ export function Blog() {
                         {post.excerpt}
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {post.tags.map((tag) => (
+                        {post.tags.map((tag: string) => (
                           <span
                             key={tag}
                             className="flex items-center gap-1 px-2 py-1 bg-[#f0f0f0] text-[#6b6b6b] text-xs rounded-full"
@@ -117,10 +167,11 @@ export function Blog() {
                     </div>
                   </div>
                 </Link>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
-            {filteredPosts.length === 0 && (
+            {!loading && !error && filteredPosts.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-[#6b6b6b]">没有找到相关文章</p>
               </div>

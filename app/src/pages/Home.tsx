@@ -2,17 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, Music, Image, MessageSquare, Github, Twitter, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { blogPosts } from '@/data/blogs';
+import { getBlogPosts, staticBlogPosts, type BlogPost } from '@/data/blogs';
 import { songs } from '@/data/music';
 import { photos } from '@/data/photos';
 import { messages } from '@/data/messages';
-
-const stats = [
-  { label: '文章', value: blogPosts.length, icon: BookOpen },
-  { label: '音乐', value: songs.length, icon: Music },
-  { label: '照片', value: photos.length, icon: Image },
-  { label: '留言', value: messages.length, icon: MessageSquare },
-];
 
 const socialLinks = [
   { icon: Github, href: 'https://github.com', label: 'GitHub' },
@@ -23,6 +16,8 @@ const socialLinks = [
 export function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
   const [typedText, setTypedText] = useState('');
+  const [latestPosts, setLatestPosts] = useState<BlogPost[]>(staticBlogPosts.slice(0, 3));
+  const [blogCount, setBlogCount] = useState(staticBlogPosts.length);
   const fullText = '内容分享者 / 知识博主 / 生活记录者';
 
   useEffect(() => {
@@ -57,7 +52,30 @@ export function Home() {
     return () => observer.disconnect();
   }, []);
 
-  const latestPosts = blogPosts.slice(0, 3);
+  // 从飞书获取最新博客数据
+  useEffect(() => {
+    async function loadBlogData() {
+      try {
+        const posts = await getBlogPosts();
+        if (posts.length > 0) {
+          setLatestPosts(posts.slice(0, 3));
+          setBlogCount(posts.length);
+        }
+      } catch (error) {
+        console.warn('Failed to load blog data from Feishu:', error);
+        // 使用静态数据作为备用
+      }
+    }
+    
+    loadBlogData();
+  }, []);
+
+  const stats = [
+    { label: '文章', value: blogCount, icon: BookOpen },
+    { label: '音乐', value: songs.length, icon: Music },
+    { label: '照片', value: photos.length, icon: Image },
+    { label: '留言', value: messages.length, icon: MessageSquare },
+  ];
 
   return (
     <div className="min-h-screen bg-[#f0efe9]">
@@ -162,7 +180,7 @@ export function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {latestPosts.map((post, index) => (
+            {latestPosts.map((post: BlogPost, index: number) => (
               <Link
                 key={post.id}
                 to={`/blog/${post.id}`}
