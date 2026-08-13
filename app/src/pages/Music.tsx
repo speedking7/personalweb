@@ -107,6 +107,27 @@ export function Music() {
     });
   };
 
+  // 空曲库必须在此拦截：下方 <audio> 直接读 currentSong.url，
+  // 而 songs 为空时 currentSong 是 undefined，渲染即抛错白屏。
+  // 上下曲的取模运算同样会因 songs.length 为 0 而得到 NaN。
+  if (songs.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#f0efe9] pt-24 pb-16">
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-12">
+          <div className="text-center mb-10">
+            <h1 className="text-3xl md:text-4xl font-medium text-[#1a1a1a] mb-4">
+              音乐馆
+            </h1>
+            <p className="text-[#6b6b6b]">享受音乐，放松心情</p>
+          </div>
+          <div className="bg-white rounded-2xl py-20 text-center shadow-sm">
+            <p className="text-[#6b6b6b]">还没有添加任何曲目</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f0efe9] pt-24 pb-16">
       <audio

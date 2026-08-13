@@ -41,6 +41,18 @@ export function Blog() {
     loadBlogData();
   }, []);
 
+  // 归档由真实文章日期聚合而来，不写死。
+  // 无法解析日期的条目直接跳过，避免飞书侧格式变动时渲染出 NaN。
+  const archives = Array.from(
+    posts.reduce((map, post) => {
+      const matched = /^(\d{4})-(\d{2})/.exec(post.date);
+      if (!matched) return map;
+      const ym = `${matched[1]}-${matched[2]}`;
+      map.set(ym, (map.get(ym) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>())
+  ).sort((a, b) => b[0].localeCompare(a[0]));
+
   const filteredPosts = posts.filter((post) => {
     const matchesCategory =
       activeCategory === '全部' || post.category === activeCategory;
@@ -221,23 +233,24 @@ export function Blog() {
             </div>
 
             {/* Archive */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-medium text-[#1a1a1a] mb-4">归档</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6b6b6b]">2024年12月</span>
-                  <span className="text-[#9ca3af]">2篇</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6b6b6b]">2024年11月</span>
-                  <span className="text-[#9ca3af]">2篇</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6b6b6b]">2024年10月</span>
-                  <span className="text-[#9ca3af]">1篇</span>
+            {archives.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-medium text-[#1a1a1a] mb-4">归档</h3>
+                <div className="space-y-2">
+                  {archives.map(([ym, count]) => {
+                    const [year, month] = ym.split('-');
+                    return (
+                      <div key={ym} className="flex items-center justify-between text-sm">
+                        <span className="text-[#6b6b6b]">
+                          {year}年{Number(month)}月
+                        </span>
+                        <span className="text-[#9ca3af]">{count}篇</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

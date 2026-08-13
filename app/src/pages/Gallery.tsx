@@ -78,6 +78,12 @@ export function Gallery() {
           ))}
         </div>
 
+        {filteredPhotos.length === 0 && (
+          <div className="bg-white rounded-xl py-20 text-center shadow-sm">
+            <p className="text-[#6b6b6b]">还没有上传任何照片</p>
+          </div>
+        )}
+
         {/* Photo Grid - Masonry Style */}
         <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
           {filteredPhotos.map((photo) => (
