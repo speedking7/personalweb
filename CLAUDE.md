@@ -12,9 +12,11 @@ React 19 + TypeScript 5.9 + Vite 7 + Tailwind 3.4 + shadcn/ui(Radix) + React Rou
 app/ - 前端单页应用，构建产物输出至 /docs (7子目录: pages 七个路由页面, sections 首页分区, components/ui 53个 shadcn 基元, data 静态内容源, lib 飞书客户端与工具, types 领域契约, hooks)
 server/ - 飞书 API 代理层，单文件 Express(feishu-proxy.ts, 201行, 6个端点)。存在的唯一理由是 app_secret 不可下发浏览器，兼以 node-cache 吸收飞书接口限流
 docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。此处构建产物与三份手写指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)混居，且 emptyOutDir 未开启，assets/ 下历史 hash 文件只增不减(现存 8 个)。开启清理即误删文档——此耦合待解
+refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝不可挪回 docs/：那里是 Pages 发布根，入库即等于公开转载
 </directory>
 
 <config>
+WRITING_STYLE.md - 由 refs/ 提炼的写作风格手册，博客行文的唯一依据。写文章前先读它，不要凭印象模仿
 app/vite.config.ts - base=/personalweb/ 与 outDir=../docs 共同锁死 GitHub Pages 部署形态；dev 期 /api/feishu 转发 :3001 亦在此
 app/src/App.tsx - 采用 HashRouter 而非 BrowserRouter，因 GitHub Pages 无 SPA history fallback，深链刷新会 404
 app/.env - 前端飞书 app_id 与 wiki token；server/.env - 服务端 app_secret，绝不可进前端包

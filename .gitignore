@@ -32,3 +32,7 @@ Thumbs.db
 # 用 .omc/* 而非 .omc/：目录整体被忽略时 git 不会递归进入，下方的 ! 例外将失效
 .omc/*
 !.omc/skills/
+
+## 参考资料：他人版权内容，仅供本地风格研习
+# 切勿放回 docs/ —— 那里是 GitHub Pages 发布根，入库即等于公开转载
+refs/
