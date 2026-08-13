@@ -27,3 +27,8 @@ Thumbs.db
 .env
 **/.env
 !.env.example
+
+## Agent 运行时状态
+# 用 .omc/* 而非 .omc/：目录整体被忽略时 git 不会递归进入，下方的 ! 例外将失效
+.omc/*
+!.omc/skills/
