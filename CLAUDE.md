@@ -17,7 +17,7 @@ refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝�
 
 <config>
 WRITING_STYLE.md - 由 refs/ 提炼的写作风格手册，博客行文的唯一依据。写文章前先读它，不要凭印象模仿
-app/vite.config.ts - base=/personalweb/ 与 outDir=../docs 共同锁死 GitHub Pages 部署形态；dev 期 /api/feishu 转发 :3001 亦在此
+app/vite.config.ts - base=/personalweb/ 与 outDir=../docs 共同锁死 GitHub Pages 部署形态；dev 期 /api/feishu 的转发目标由 VITE_PROXY_TARGET 覆盖(默认 :3001)，端口不写死在代码里，本机冲突改 .env 即可，须与 server/.env 的 PORT 一致
 app/src/App.tsx - 采用 HashRouter 而非 BrowserRouter，因 GitHub Pages 无 SPA history fallback，深链刷新会 404
 app/.env - 前端飞书 app_id 与 wiki token；server/.env - 服务端 app_secret，绝不可进前端包
 start.sh - 一键拉起 server(:3001)+app(:5173)，含依赖与 .env 缺失前置检查
