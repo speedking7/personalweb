@@ -138,13 +138,15 @@ export function Blog() {
                   className="group block bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300"
                 >
                   <div className="md:flex">
-                    <div className="md:w-1/3 aspect-video md:aspect-auto overflow-hidden">
-                      <img
-                        src={post.coverImage}
-                        alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
+                    {post.coverImage && (
+                      <div className="md:w-1/3 aspect-video md:aspect-auto overflow-hidden">
+                        <img
+                          src={post.coverImage}
+                          alt={post.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    )}
                     <div className="md:w-2/3 p-6">
                       <div className="flex items-center gap-3 mb-3">
                         <span className="px-2 py-1 bg-[#f0f0f0] text-[#4a4a4a] text-xs font-medium rounded-full">

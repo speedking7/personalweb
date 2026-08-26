@@ -187,13 +187,15 @@ export function Home() {
                 className="animate-on-scroll opacity-0 group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="aspect-video overflow-hidden">
-                  <img
-                    src={post.coverImage}
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
+                {post.coverImage && (
+                  <div className="aspect-video overflow-hidden">
+                    <img
+                      src={post.coverImage}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="px-2 py-1 bg-[#f0f0f0] text-[#4a4a4a] text-xs font-medium rounded-full">

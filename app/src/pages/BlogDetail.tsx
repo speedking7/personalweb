@@ -81,13 +81,15 @@ export function BlogDetail() {
 
         {/* Article Header */}
         <div className="bg-white rounded-xl overflow-hidden shadow-sm mb-8">
-          <div className="aspect-video">
-            <img
-              src={post.coverImage}
-              alt={post.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
+          {post.coverImage && (
+            <div className="aspect-video">
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
           <div className="p-8">
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <span className="px-3 py-1 bg-[#f0f0f0] text-[#4a4a4a] text-sm font-medium rounded-full">
@@ -168,13 +170,15 @@ function RelatedPosts({ currentPostId, category }: { currentPostId: string; cate
             to={`/blog/${relatedPost.id}`}
             className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all"
           >
-            <div className="aspect-video overflow-hidden">
-              <img
-                src={relatedPost.coverImage}
-                alt={relatedPost.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-              />
-            </div>
+            {relatedPost.coverImage && (
+              <div className="aspect-video overflow-hidden">
+                <img
+                  src={relatedPost.coverImage}
+                  alt={relatedPost.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+              </div>
+            )}
             <div className="p-4">
               <h3 className="font-medium text-[#1a1a1a] group-hover:text-[#6b6b6b] transition-colors">
                 {relatedPost.title}

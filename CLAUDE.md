@@ -3,13 +3,16 @@
 React 19 + TypeScript 5.9 + Vite 7 + Tailwind 3.4 + shadcn/ui(Radix) + React Router 7 + Express 4 + node-cache
 
 <dataflow>
-飞书知识库 → server/feishu-proxy(持 app_secret、缓存 600s) → Vite proxy /api/feishu → lib/feishu.ts FeishuBlogClient(解析 docx 块为 BlogPost) → pages/Blog·BlogDetail
+主源(运行期)：飞书知识库 → server/feishu-proxy(持 app_secret、缓存 600s) → Vite proxy /api/feishu → lib/feishu.ts FeishuBlogClient(解析 docx 块为 BlogPost) → pages/Blog·BlogDetail
+备源(构建期)：app/src/content/posts/*.md → import.meta.glob 内联 → data/blogs.ts 的 staticBlogPosts → 同一批页面
 
-内容不落库、不进仓库：飞书即 CMS，构建期不参与，运行期实时拉取。故博客内容的唯一真相在飞书，代码侧只有契约(types/blog.ts)。
+两源共用 lib/markdown.ts 的 parseBlogMetadata 解析 frontmatter，规则只有一份，不会各自漂移。
+auto 模式下飞书失败即回落备源——兜底必须是真文章，绝不可放占位假数据，否则"数据源已死"与"一切正常"在页面上无从分辨。
+飞书内容不落库；本地文章入库，是刻意为之：它同时充当发布通道与故障兜底，不依赖任何外部服务。
 </dataflow>
 
 <directory>
-app/ - 前端单页应用，构建产物输出至 /docs (7子目录: pages 七个路由页面, sections 首页分区, components/ui 53个 shadcn 基元, data 静态内容源, lib 飞书客户端与工具, types 领域契约, hooks)
+app/ - 前端单页应用，构建产物输出至 /docs (8子目录: pages 七个路由页面, sections 首页分区, components/ui 53个 shadcn 基元, content/posts 本地文章 md, data 数据入口与降级决策, lib 飞书客户端+frontmatter 解析, types 领域契约, hooks)
 server/ - 飞书 API 代理层，单文件 Express(feishu-proxy.ts, 201行, 6个端点)。存在的唯一理由是 app_secret 不可下发浏览器，兼以 node-cache 吸收飞书接口限流
 docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。此处构建产物与三份手写指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)混居，且 emptyOutDir 未开启，assets/ 下历史 hash 文件只增不减(现存 8 个)。开启清理即误删文档——此耦合待解
 refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝不可挪回 docs/：那里是 Pages 发布根，入库即等于公开转载
