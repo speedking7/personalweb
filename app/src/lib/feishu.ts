@@ -13,7 +13,8 @@ export type { BlogPost };
 const FEISHU_CONFIG = {
   // 飞书开放平台应用凭证（需要后端代理或环境变量配置）
   appId: import.meta.env.VITE_FEISHU_APP_ID || '',
-  appSecret: import.meta.env.VITE_FEISHU_APP_SECRET || '',
+  // appSecret 刻意不在此处读取：VITE_ 前缀的含义就是「交给浏览器」，
+  // 密钥只应存在于 server/.env。全部飞书调用均经 /api/feishu 代理完成。
   // 知识库 Token（从飞书知识库 URL 获取）
   wikiToken: import.meta.env.VITE_FEISHU_WIKI_TOKEN || '',
   // 博客文件夹 Token
