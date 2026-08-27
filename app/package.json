@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "deploy": "npm run build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:selfhost": "tsc -b && VITE_BASE_PATH=/ VITE_OUT_DIR=dist vite build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
