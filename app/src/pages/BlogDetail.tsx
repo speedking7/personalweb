@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Tag, Loader2 } from 'lucide-react';
 import { getBlogPost, getBlogPosts, type BlogPost } from '@/data/blogs';
 import ReactMarkdown from 'react-markdown';
+import { Comments } from '@/components/Comments';
 
 export function BlogDetail() {
   const { id } = useParams<{ id: string }>();
@@ -129,6 +130,12 @@ export function BlogDetail() {
               {tag}
             </span>
           ))}
+        </div>
+
+        {/* Comments —— term 用文章 id：本站是 HashRouter，
+            pathname 全站相同，按路径映射会让所有文章共用一个讨论串 */}
+        <div className="mt-12">
+          <Comments term={post.id} title="留言" />
         </div>
 
         {/* Related Posts */}
