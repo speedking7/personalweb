@@ -1,6 +1,6 @@
-# personalweb - 飞书驱动的个人网站与博客系统
+# personalweb - 个人网站与博客，发布于 blog.yingtongxue.cn
 
-React 19 + TypeScript 5.9 + Vite 7 + Tailwind 3.4 + shadcn/ui(Radix) + React Router 7 + Express 4 + node-cache
+React 19 + TypeScript 5.9 + Vite 7 + Tailwind 3.4 + shadcn/ui(Radix) + React Router 7 + Express 4 + node-cache + giscus
 
 <dataflow>
 主源(运行期)：飞书知识库 → server/feishu-proxy(持 app_secret、缓存 600s) → Vite proxy /api/feishu → lib/feishu.ts FeishuBlogClient(解析 docx 块为 BlogPost) → pages/Blog·BlogDetail
@@ -12,7 +12,7 @@ auto 模式下飞书失败即回落备源——兜底必须是真文章，绝不
 </dataflow>
 
 <directory>
-app/ - 前端单页应用，构建产物输出至 /docs (8子目录: pages 七个路由页面, sections 首页分区, components/ui 53个 shadcn 基元, content/posts 本地文章 md, data 数据入口与降级决策, lib 飞书客户端+frontmatter 解析, types 领域契约, hooks)
+app/ - 前端单页应用，构建产物输出至 /docs (9子目录: pages 七个路由页面, sections 首页分区, components 导航与评论挂载器+ui 53个 shadcn 基元, config 评论系统配置, content/posts 本地文章 md, data 数据入口与降级决策, lib 飞书客户端+frontmatter 解析, types 领域契约, hooks)
 server/ - 飞书 API 代理层，单文件 Express(feishu-proxy.ts, 201行, 6个端点)。存在的唯一理由是 app_secret 不可下发浏览器，兼以 node-cache 吸收飞书接口限流
 docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。此处构建产物与三份手写指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)混居，且 emptyOutDir 未开启，assets/ 下历史 hash 文件只增不减(现存 8 个)。开启清理即误删文档——此耦合待解
 refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝不可挪回 docs/：那里是 Pages 发布根，入库即等于公开转载
@@ -20,10 +20,13 @@ refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝�
 
 <config>
 WRITING_STYLE.md - 由 refs/ 提炼的写作风格手册，博客行文的唯一依据。写文章前先读它，不要凭印象模仿
-app/vite.config.ts - base=/personalweb/ 与 outDir=../docs 共同锁死 GitHub Pages 部署形态；dev 期 /api/feishu 的转发目标由 VITE_PROXY_TARGET 覆盖(默认 :3001)，端口不写死在代码里，本机冲突改 .env 即可，须与 server/.env 的 PORT 一致
+app/vite.config.ts - base 默认 /(自定义域名直达根路径)，可用 VITE_BASE_PATH 退回 /personalweb/ 项目站点形态；outDir 默认 ../docs，VITE_OUT_DIR 可改。带错 base 上线即全站资源 404，且本地预览发现不了——本地始终从根提供服务。dev 期 /api/feishu 转发目标由 VITE_PROXY_TARGET 覆盖(默认 :3001)，须与 server/.env 的 PORT 一致；VITE_DEV_HOST 控制监听范围，默认仅本机
 app/src/App.tsx - 采用 HashRouter 而非 BrowserRouter，因 GitHub Pages 无 SPA history fallback，深链刷新会 404
-app/.env - 前端飞书 app_id 与 wiki token；server/.env - 服务端 app_secret，绝不可进前端包
+app/.env - 仅存可公开的 app_id 与 wiki token。VITE_ 前缀的含义就是「交给浏览器」，任何密钥都不得用该前缀；server/.env - app_secret 的唯一归处
+app/public/CNAME - 自定义域名标识，随构建复制进产物。置于 public/ 而非直接放 docs/，否则一旦开启 emptyOutDir 就被清掉
+app/src/config/giscus.ts - 评论系统配置，categoryId 等需人工获取的值只有这一个填写位；缺配置时组件显式提示，不留空白假装加载中
 start.sh - 一键拉起 server(:3001)+app(:5173)，含依赖与 .env 缺失前置检查
+OPERATIONS.md - 部署形态、发布流程、已停服务的恢复方式、尚未清理的历史账
 </config>
 
 法则: 极简·稳定·导航·版本精确
