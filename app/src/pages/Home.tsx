@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, Music, Image, MessageSquare, Github, Twitter, Mail } from 'lucide-react';
+import { ArrowRight, BookOpen, Music, Image, Github, Twitter, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getBlogPosts, staticBlogPosts, type BlogPost } from '@/data/blogs';
 import { songs } from '@/data/music';
 import { photos } from '@/data/photos';
-import { messages } from '@/data/messages';
 
 const socialLinks = [
   { icon: Github, href: 'https://github.com', label: 'GitHub' },
@@ -74,7 +73,6 @@ export function Home() {
     { label: '文章', value: blogCount, icon: BookOpen },
     { label: '音乐', value: songs.length, icon: Music },
     { label: '照片', value: photos.length, icon: Image },
-    { label: '留言', value: messages.length, icon: MessageSquare },
   ];
 
   return (
