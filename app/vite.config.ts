@@ -9,9 +9,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '')
 
   return {
-    // 部署形态不写死：GitHub Pages 的项目站点位于 /仓库名/ 下，需要前缀；
-    // 自有域名直达根路径，前缀反而会让所有资源 404。构建时用 VITE_BASE_PATH 切换。
-    base: env.VITE_BASE_PATH || "/personalweb/",
+    // 默认根路径：站点已绑定自定义域名 blog.yingtongxue.cn，直达根目录。
+    // 若要退回 github.io/personalweb/ 那种项目站点形态，构建时设
+    // VITE_BASE_PATH=/personalweb/ —— 带错前缀上线即全站资源 404，
+    // 且本地预览发现不了，因为本地是从根提供服务的。
+    base: env.VITE_BASE_PATH || "/",
     build: {
       // 默认输出到 ../docs，供 GitHub Pages 直接发布（该目录随仓库入库）。
       // 自托管构建输出到 app/dist，那里已被 gitignore——两份产物形态不同，
