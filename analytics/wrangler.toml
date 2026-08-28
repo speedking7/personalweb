@@ -2,6 +2,15 @@ name = "personalweb-views"
 main = "src/counter.js"
 compatibility_date = "2026-01-01"
 
+# 两项都显式写出，而不是依赖默认值——deploy 时 wrangler 会为沉默的配置各报一条
+# warning，那正是「配置没说话，于是替你做主」的信号。
+#
+# workers_dev：本 Worker 就是靠 workers.dev 子域对外提供服务的，明确开启。
+# preview_urls：关掉。开着的话每个历史版本都会各得一个公开地址长期可达，
+#   而它们共用同一个 KV——等于给计数留了若干个没人看管的旁门。
+workers_dev = true
+preview_urls = false
+
 # 放行的站点来源。只回显这一个 Origin，不写 * ——
 # 写 * 等于允许任何网站替你刷数。本地调试时临时改成 http://localhost:5173。
 [vars]
@@ -12,7 +21,7 @@ ALLOWED_ORIGIN = "https://blog.yingtongxue.cn"
 # 而这里写死一个假 id 会让部署在第一步就明确失败。
 [[kv_namespaces]]
 binding = "VIEWS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "17e044a9f85c498fa0140efda9636d42"
 
 # STATS_TOKEN 不写在这里。它是读取全部统计的口令，
 # 必须用 `npx wrangler secret put STATS_TOKEN` 存进 secret，

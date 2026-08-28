@@ -38,14 +38,34 @@ excerpt: 摘要，不写会截取正文第二段前 100 字
 3. 封面放 `app/public/covers/`，frontmatter 写相对路径（代码会补部署 base）
 4. 封面建议压到 200KB 内、1920px 宽、渐进式 JPEG。**主体往画面中间放**——
    列表页容器会把宽图裁成约 1.2:1，构图偏两侧的图会被切秃
-5. `npm run build`（在 `app/` 下），产物进 `docs/`
-6. 提交并推送，GitHub Pages 自动更新
+5. **构建前确认 `app/.env` 里有 `VITE_VIEW_COUNTER_URL`**。该文件是 gitignored 的，
+   只存在于站主本机；一旦缺失，上报代码会被 Vite 摇树消除，站点照常工作但阅读量
+   静默停止记录，且页面上看不出任何异样。核对方法：构建后 `grep -c '/hit' docs/assets/*.js`
+   应为 1，为 0 就是漏了
+6. `npm run build`（在 `app/` 下），产物进 `docs/`
+7. 提交并推送，GitHub Pages 自动更新
 
 行文风格见项目根 `WRITING_STYLE.md`，里面有可对表的量化指标。
 
-## 部署阅读量计数（可选，未部署不影响站点）
+## 阅读量计数（已部署 2026-08-28）
 
-阅读量**只给站主看，页面不展示**。未配置时前端一个请求都不发，站点行为与现在完全一致。
+阅读量**只给站主看，页面不展示**。未配置时前端一个请求都不发。
+
+当前实例：`https://personalweb-views.speedkingblock.workers.dev`，
+KV namespace id `17e044a9f85c498fa0140efda9636d42`，`STATS_TOKEN` 在 Worker secret 里。
+
+线上已实测通过：`/stats` 无口令与错口令均 401、未知路径 404、对 `/hit` 发 GET 为 404、
+外站来源 403、非法 slug 400、请求体非 JSON 400、爬虫 UA 回 204 但不计数、
+OPTIONS 预检 204、CORS 头精确回显单一来源而非 `*`、连续三次上报均 204（KV 运行时可写）。
+KV 里有一条 `1970-01-01-smoke-test` 是当时的连通性测试残留，可随时删除。
+
+重新部署（改了 Worker 代码之后）：
+
+```bash
+cd analytics && node test/counter.test.mjs && npx wrangler deploy
+```
+
+首次部署的完整步骤见下方。
 
 **先跑测试**，它不需要网络和凭据，逻辑有错在这一步就会暴露：
 
