@@ -237,7 +237,11 @@ export class FeishuBlogClient {
    * 获取分类列表
    */
   getCategories(): string[] {
-    return blogCache?.categories || ['全部', '技术', '生活', '旅行'];
+    // 缓存为空返回空数组，绝不返回硬编码的分类名。
+    // 此前这里兜的是 ['全部','技术','生活','旅行']——一份凭空捏造的清单，
+    // 在飞书不可用时会被当成真实统计结果显示出来，读者点进「生活」「旅行」
+    // 只会看到空白。假数据让「数据源已死」与「一切正常」在页面上无从分辨。
+    return blogCache?.categories || [];
   }
   
   /**

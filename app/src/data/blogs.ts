@@ -6,7 +6,14 @@
  * [POS]: data/ 层的博客数据唯一入口，横在 pages/Blog·BlogDetail·Home 与两个数据源之间。
  *        持有 feishu/static/auto 三态降级决策：auto 下飞书失败会静默回落到本地文章。
  *        降级本身不在页面上显形，排查数据问题须从这里的降级分支看起；
- *        但兜底内容是 content/posts/ 下的真实文章，不是占位数据——这是有意的设计
+ *        但兜底内容是 content/posts/ 下的真实文章，不是占位数据——这是有意的设计。
+ *        降级判定只在 getBlogPosts 一处：feishuBlogClient 失败时不抛异常而是返回空数组，
+ *        因此判据必须是「结果为空」而非「捕获到异常」。getCategories、getTags、
+ *        getPostsByCategory、getPostsByTag、searchPosts 一律从 getBlogPosts 派生，
+ *        不得另开一条飞书链路——
+ *        曾经 getTags 与 getCategories 各自实现了一套 catch 式降级，catch 永不触发，
+ *        导致标签云长期为空、分类栏显示凭空捏造的清单。派生同时立下一条不变量：
+ *        标签与分类只能来自真实显示的文章，不可能出现零文章的标签
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { feishuBlogClient } from '@/lib/feishu';
@@ -136,35 +143,22 @@ export async function getBlogPost(id: string): Promise<BlogPost | undefined> {
  * 优先从飞书知识库获取，失败时降级到静态数据
  */
 export async function getCategories(): Promise<string[]> {
-  // 仅使用静态数据模式
-  if (dataSourceMode === 'static') {
-    const categories = new Set(['全部']);
-    staticBlogPosts.forEach(post => categories.add(post.category));
-    return Array.from(categories);
-  }
-  
-  // 仅使用飞书模式 或 自动模式
-  if (dataSourceMode === 'feishu' || dataSourceMode === 'auto') {
-    try {
-      // 先从飞书获取文章列表（会更新缓存）
-      await feishuBlogClient.fetchBlogPosts();
-      const categories = feishuBlogClient.getCategories();
-      return ['全部', ...categories.filter(c => c !== '全部' && c !== '未分类')];
-    } catch (error) {
-      console.warn('Failed to fetch categories from Feishu:', error);
-      // 自动模式下降级到静态数据
-      if (dataSourceMode === 'auto') {
-        const categories = new Set(['全部']);
-        staticBlogPosts.forEach(post => categories.add(post.category));
-        return Array.from(categories);
-      }
-    }
-  }
-  
-  // 兜底同样走真实数据聚合，不写死分类——写死的分类会在文章全空时依旧显示，冒充成统计结果
-  const fallback = new Set(['全部']);
-  staticBlogPosts.forEach(post => fallback.add(post.category));
-  return Array.from(fallback);
+  // 从 getBlogPosts 派生，而非另走一遍飞书链路。
+  //
+  // 此前这里自己实现了一套 try/catch 降级，与 getBlogPosts 的那套并行存在，
+  // 而两套的判定条件不一样——feishuBlogClient.fetchBlogPosts() 失败时不抛异常，
+  // 只返回空数组，所以 catch 永远不触发，降级永远不发生。getBlogPosts 因为
+  // 额外检查了 posts.length > 0 而侥幸正确，这里没检查，于是拿到飞书客户端
+  // 那份硬编码的假分类（技术/生活/旅行）当成了真实统计结果。
+  //
+  // 改为派生之后，判定条件只剩一处，且立下一条不变量：
+  // 分类只能来自真实显示的文章，不可能出现零文章的分类。
+  const posts = await getBlogPosts();
+  const categories = new Set(['全部']);
+  posts.forEach(post => {
+    if (post.category && post.category !== '全部') categories.add(post.category);
+  });
+  return Array.from(categories);
 }
 
 /**
@@ -172,31 +166,15 @@ export async function getCategories(): Promise<string[]> {
  * 优先从飞书知识库获取，失败时降级到静态数据
  */
 export async function getTags(): Promise<string[]> {
-  // 仅使用静态数据模式
-  if (dataSourceMode === 'static') {
-    const tags = new Set<string>();
-    staticBlogPosts.forEach(post => post.tags.forEach((tag: string) => tags.add(tag)));
-    return Array.from(tags);
-  }
-  
-  // 仅使用飞书模式 或 自动模式
-  if (dataSourceMode === 'feishu' || dataSourceMode === 'auto') {
-    try {
-      // 先从飞书获取文章列表（会更新缓存）
-      await feishuBlogClient.fetchBlogPosts();
-      return feishuBlogClient.getTags();
-    } catch (error) {
-      console.warn('Failed to fetch tags from Feishu:', error);
-      // 自动模式下降级到静态数据
-      if (dataSourceMode === 'auto') {
-        const tags = new Set<string>();
-        staticBlogPosts.forEach(post => post.tags.forEach((tag: string) => tags.add(tag)));
-        return Array.from(tags);
-      }
-    }
-  }
-  
-  return [];
+  // 同 getCategories，从 getBlogPosts 派生。
+  //
+  // 标签云此前一直是空的，就是因为这里直接 return feishuBlogClient.getTags()：
+  // 飞书链路失败时不抛异常，缓存为空，该方法返回 []，catch 不触发，降级不发生。
+  // 页面上「本站没有标签」与「数据源已死」于是长得一模一样。
+  const posts = await getBlogPosts();
+  const tags = new Set<string>();
+  posts.forEach(post => post.tags.forEach((tag: string) => tags.add(tag)));
+  return Array.from(tags);
 }
 
 /**
