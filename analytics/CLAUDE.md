@@ -26,6 +26,13 @@ src/counter.js: Worker 全部实现，两个端点。`/hit` 校验 slug 形如 `
 「忘了配置」不应该等于「对全世界开放」。CORS 只回显 `ALLOWED_ORIGIN` 单一来源，
 不写 `*`——写 `*` 等于允许任何站点替你刷数。
 
+test/counter.test.mjs: 16 项断言，`node test/counter.test.mjs` 直接跑，无框架无依赖。
+用内存对象顶替 KV，因此不碰网络、不需要 Cloudflare 凭据——**部署前必须先跑通这个**。
+这个 Worker 部署一次要走登录、建 KV、存 secret、deploy 四步，把逻辑错误留到那时候
+才发现，代价远高于在这里跑一遍。覆盖的是行为而非实现：204 不回传内容、累加而非覆盖、
+外站来源被拒且不写库、爬虫回 204 但不计数、非法 slug 不污染 KV、
+未配置 STATS_TOKEN 时一律 401。
+
 wrangler.toml: 部署配置。`ALLOWED_ORIGIN` 与 KV 绑定写在这里，
 `STATS_TOKEN` 刻意不写——本文件入库，写进来的口令等于公开发布，必须走 secret。
 KV 的 id 是醒目的占位串而非留空，好让未替换时在部署第一步就明确失败。

@@ -47,6 +47,14 @@ excerpt: 摘要，不写会截取正文第二段前 100 字
 
 阅读量**只给站主看，页面不展示**。未配置时前端一个请求都不发，站点行为与现在完全一致。
 
+**先跑测试**，它不需要网络和凭据，逻辑有错在这一步就会暴露：
+
+```bash
+cd analytics && node test/counter.test.mjs     # 应输出「通过 16 项，失败 0 项」
+```
+
+确认通过后再部署：
+
 ```bash
 cd analytics
 npx wrangler login                                  # 首次需授权 Cloudflare 账号
