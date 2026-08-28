@@ -25,6 +25,7 @@ WRITING_STYLE.md - 由 refs/ 提炼的写作风格手册，管「怎么写句子
 BLOG_PLAYBOOK.md - 本项目自己积累的写作决策，管「写给谁、写什么、怎么配图、怎么发」。与 WRITING_STYLE.md 分工互补，写文章前两份都读。定死了目标读者是零基础普通大众——这条已经漂移过两次，每次都得整篇重写
 app/vite.config.ts - base 默认 /(自定义域名直达根路径)，可用 VITE_BASE_PATH 退回 /personalweb/ 项目站点形态；outDir 默认 ../docs，VITE_OUT_DIR 可改；emptyOutDir 已开启，前提是 docs/ 内一切都能由构建重建。带错 base 上线即全站资源 404，且本地预览发现不了——本地始终从根提供服务。dev 期 /api/feishu 转发目标由 VITE_PROXY_TARGET 覆盖(默认 :3001)，须与 server/.env 的 PORT 一致；VITE_DEV_HOST 控制监听范围，默认仅本机
 app/src/App.tsx - 采用 HashRouter 而非 BrowserRouter，因 GitHub Pages 无 SPA history fallback，深链刷新会 404
+app/src/index.css - 文章正文样式的唯一出处。**没有装 @tailwindcss/typography**，所以 JSX 里任何 prose-p:/prose-a:/prose-code: 之类的修饰类都是空类，写了不生效却看着像生效——改正文外观只能改这里的手写 .prose 规则。正文链接取 #A65D1E：与封面烧橙同色相，压暗到对白底 4.99:1 过 WCAG AA；颜色之外必带下划线，只靠颜色标记链接对色觉障碍读者等于不可见。文章内互指用 blog.yingtongxue.cn 完整地址而非相对 hash 路径，后者一旦内容被复制到站外即成死链
 app/.env - 仅存可公开的 app_id 与 wiki token。VITE_ 前缀的含义就是「交给浏览器」，任何密钥都不得用该前缀；server/.env - app_secret 的唯一归处
 app/public/CNAME - 自定义域名标识，随构建复制进产物。置于 public/ 而非直接放 docs/，否则一旦开启 emptyOutDir 就被清掉
 app/src/config/giscus.ts - 评论系统配置，categoryId 等需人工获取的值只有这一个填写位；缺配置时组件显式提示，不留空白假装加载中

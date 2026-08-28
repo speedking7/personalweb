@@ -116,6 +116,32 @@
 }
 
 /* Prose styles for markdown */
+
+/* 正文内链接。
+   注意：本项目没有装 @tailwindcss/typography，JSX 里那串 prose-a:/prose-p: 修饰类
+   全是空类，不生效——.prose 的样式只有这里手写的这一份，改样式请改这里。
+
+   取色 #A65D1E：与三张封面的烧橙同色相(33°)，压暗到对白底 4.99:1，
+   过 WCAG AA 的正文门槛(4.5)。封面原色 #D2811E 只有 3.04:1，正文用会看不清。
+   与正文灰 #6b6b6b 的 5.33:1 接近，因此它读起来是同一层字里换了颜色，不喧宾夺主。
+
+   颜色之外必须再给一个下划线：色觉障碍读者分辨不出颜色差异，
+   只靠颜色标记链接等于对他们不可见。默认下划线压到 40% 透明度保持克制，
+   悬停时转为实色，给出「这是可点的」的确认。 */
+.prose a {
+  color: #A65D1E;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(166, 93, 30, 0.4);
+  transition: text-decoration-color 0.15s ease, color 0.15s ease;
+}
+
+.prose a:hover {
+  color: #8F5314;
+  text-decoration-color: currentColor;
+}
+
 .prose pre {
   background-color: #1a1a1a;
   color: #e5e5e5;
@@ -124,8 +150,23 @@
   overflow-x: auto;
 }
 
+/* 行内代码。背景与内边距原本写在 BlogDetail 的 prose-code:bg-[#f0f0f0] 等修饰类里，
+   但那些类依赖未安装的 typography 插件，从未生效过——行内代码一直只有等宽字体、
+   没有底色。此处按原本的意图补上，取色沿用站内既有的 #f0f0f0。
+   pre 内的代码不套这层底色，否则与 pre 的深色块相冲。 */
 .prose code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background-color: #f0f0f0;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
 }
 
 .prose p {

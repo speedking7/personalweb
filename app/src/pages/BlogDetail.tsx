@@ -114,7 +114,13 @@ export function BlogDetail() {
 
         {/* Article Content */}
         <article className="bg-white rounded-xl p-8 shadow-sm">
-          <div className="prose prose-lg max-w-none prose-headings:text-[#1a1a1a] prose-p:text-[#6b6b6b] prose-a:text-[#1a1a1a] prose-code:bg-[#f0f0f0] prose-code:px-2 prose-code:py-1 prose-code:rounded prose-pre:bg-[#1a1a1a] prose-pre:text-[#e5e5e5]">
+          {/* .prose 的具体样式全部手写在 src/index.css，本项目没有装
+              @tailwindcss/typography。此处原本还挂着一串 prose-headings:/prose-p:/
+              prose-a:/prose-code:/prose-pre: 修饰类，插件缺席时它们是空类，一个都不生效——
+              却写着与实际不符的声明。其中 prose-a:text-[#1a1a1a] 尤其危险：
+              哪天有人装上插件，它会立刻盖掉 index.css 里的链接色，链接又变回看不见。
+              故一并移除，样式的唯一出处是 index.css。 */}
+          <div className="prose prose-lg max-w-none">
             <ReactMarkdown>{post.content}</ReactMarkdown>
           </div>
         </article>
