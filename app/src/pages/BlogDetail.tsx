@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Tag, Loader2 } from 'lucide-react';
 import { getBlogPost, getBlogPosts, type BlogPost } from '@/data/blogs';
+import { recordView } from '@/lib/views';
 import ReactMarkdown from 'react-markdown';
 import { Comments } from '@/components/Comments';
 
@@ -27,6 +28,9 @@ export function BlogDetail() {
         const loadedPost = await getBlogPost(id);
         setPost(loadedPost || null);
         setError(null);
+        // 只在确实取到文章之后上报，避免把 404 也计成一次阅读。
+        // 未配置计数服务时 recordView 内部直接返回，不产生任何请求。
+        if (loadedPost) recordView(id);
       } catch (err) {
         console.error('Failed to load post:', err);
         setError('加载文章失败');

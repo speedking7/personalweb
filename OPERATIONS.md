@@ -43,6 +43,38 @@ excerpt: 摘要，不写会截取正文第二段前 100 字
 
 行文风格见项目根 `WRITING_STYLE.md`，里面有可对表的量化指标。
 
+## 部署阅读量计数（可选，未部署不影响站点）
+
+阅读量**只给站主看，页面不展示**。未配置时前端一个请求都不发，站点行为与现在完全一致。
+
+```bash
+cd analytics
+npx wrangler login                                  # 首次需授权 Cloudflare 账号
+npx wrangler kv namespace create VIEWS              # 记下输出的 id
+#  把 id 填进 wrangler.toml 的 REPLACE_WITH_KV_NAMESPACE_ID
+npx wrangler secret put STATS_TOKEN                 # 自己取一个长口令，只存在这里
+npx wrangler deploy                                 # 输出形如 https://personalweb-views.xxx.workers.dev
+```
+
+然后把那个地址填进 `app/.env` 的 `VITE_VIEW_COUNTER_URL`，重新 `npm run build` 并提交。
+
+看数据：
+
+```bash
+curl 'https://personalweb-views.xxx.workers.dev/stats?token=你的口令'
+```
+
+按阅读量倒序返回 JSON。几条须知：
+
+- **端点地址随前端产物公开**，任何人都能 POST 刷数。它是给站主看趋势的参考，
+  不是可信的统计口径。Worker 已校验 slug 形如 `YYYY-MM-DD-slug`，防的是 KV 被垃圾键塞满
+  （免费额度按键数算），防不了有心人灌水。
+- **KV 最终一致，并发写会丢计数**。个人博客量级可接受；要精确得上 Durable Object，
+  为这个数字不值得。
+- `STATS_TOKEN` 未配置时 `/stats` 一律 401，不会默认放行。
+- CORS 只放行 `wrangler.toml` 里的 `ALLOWED_ORIGIN` 单一来源，本地调试需临时改成
+  `http://localhost:5173`。
+
 ## 两种构建形态，不可混用
 
 | 命令 | base | 输出 | 用途 |

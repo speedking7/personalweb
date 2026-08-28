@@ -14,6 +14,7 @@ auto 模式下飞书失败即回落备源——兜底必须是真文章，绝不
 <directory>
 app/ - 前端单页应用，构建产物输出至 /docs (9子目录: pages 七个路由页面, sections 首页分区, components 导航与评论挂载器+ui 53个 shadcn 基元, config 评论系统配置, content/posts 本地文章 md, data 数据入口与降级决策, lib 飞书客户端+frontmatter 解析, types 领域契约, hooks)
 server/ - 飞书 API 代理层，单文件 Express(feishu-proxy.ts, 201行, 6个端点)。存在的唯一理由是 app_secret 不可下发浏览器，兼以 node-cache 吸收飞书接口限流
+analytics/ - 阅读量计数服务，部署在 Cloudflare Workers(单文件 counter.js, 两个端点)。存在的理由是 Pages 纯静态、页面自身无处记录阅读数，而 server/ 线上并不存在。刻意不把数字回传前端：阅读量只给站主看，读数走 /stats?token=…，口令只在 Worker secret 里。未配置 VITE_VIEW_COUNTER_URL 时前端一个请求都不发
 docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。**纯构建产物，禁止手工放文件**——emptyOutDir 已开启，每次构建前整目录清空，手工丢进去的东西下一次构建就没了。要随产物发布的静态文件（CNAME、头像、封面）一律放 app/public/，构建时原样复制
 guides/ - 三份手写运维指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)。此前混居在 docs/ 里，既挡着 emptyOutDir 无法开启，本身又被 Pages 当静态文件公开提供。迁出后两个问题一起消失：产物可清理，内部文档不再对外
 drafts/ - 未发布稿的暂存区，已 gitignore。从这里挪进 app/src/content/posts/ 的那一步就是「发布」——posts/ 被 vite 构建期 glob 内联，文件一落进去即上线，不存在草稿态。命名也因此分野：草稿不带日期，发布稿带 YYYY-MM-DD 前缀，该前缀同时充当 /blog/:id 的路由 id
