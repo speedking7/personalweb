@@ -1,7 +1,7 @@
 # 运维与交接
 
 > 记录部署形态、发布流程、以及尚未清理的历史账。
-> 最后更新：2026-08-27
+> 最后更新：2026-08-28
 > [PROTOCOL]: 变更时更新此文件，然后检查 CLAUDE.md
 
 ## 当前部署形态
@@ -100,9 +100,11 @@ giscus，数据存在本仓库的 GitHub Discussions（Announcements 分类）�
 1. **`app/node_modules` 整体被 git 跟踪**。`.gitignore` 有规则但对已跟踪文件无效，
    需 `git rm -r --cached` 显式移除，会产生一次巨大的删除提交。
    `app/dist` 与 tsbuildinfo 已按此法清理，node_modules 尚未动。
-2. **`docs/` 三重身份**：既是 Pages 发布根，又是 vite outDir，还混着三份手写指南
-   （DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP）。`emptyOutDir` 未开启，`assets/` 下历史
-   hash 文件只增不减。开启清理会误删那三份文档——此耦合待解。
+2. ~~**`docs/` 三重身份**~~ —— 已还清。三份手写指南迁至仓库根 `guides/`，
+   `docs/` 只剩构建产物，`emptyOutDir` 随即开启。`assets/` 从 11 个（其中 9 个
+   早已无人引用）降到 2 个，且此后不再累积。附带修掉一个安全问题：那三份指南
+   位于 Pages 发布根，一直被当作静态文件公开提供，其中 FEISHU_SETUP_GUIDE
+   还在教人把 App Secret 写成 `VITE_` 前缀的前端变量——代码早已修掉，文档没跟上。
 3. **飞书应用已被删除**。后端日志报 `app has been deleted`，主数据源不可用。
    页面照常显示本地文章，因为 auto 模式会静默回落到备源。要恢复飞书需重建应用、
    回填 `app/.env` 与 `server/.env`。

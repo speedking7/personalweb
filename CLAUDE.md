@@ -14,7 +14,8 @@ auto 模式下飞书失败即回落备源——兜底必须是真文章，绝不
 <directory>
 app/ - 前端单页应用，构建产物输出至 /docs (9子目录: pages 七个路由页面, sections 首页分区, components 导航与评论挂载器+ui 53个 shadcn 基元, config 评论系统配置, content/posts 本地文章 md, data 数据入口与降级决策, lib 飞书客户端+frontmatter 解析, types 领域契约, hooks)
 server/ - 飞书 API 代理层，单文件 Express(feishu-proxy.ts, 201行, 6个端点)。存在的唯一理由是 app_secret 不可下发浏览器，兼以 node-cache 吸收飞书接口限流
-docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。此处构建产物与三份手写指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)混居，且 emptyOutDir 未开启，assets/ 下历史 hash 文件只增不减(现存 11 个，其中 9 个已无引用，index.html 只指向 2 个)。开启清理即误删文档——此耦合待解
+docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。**纯构建产物，禁止手工放文件**——emptyOutDir 已开启，每次构建前整目录清空，手工丢进去的东西下一次构建就没了。要随产物发布的静态文件（CNAME、头像、封面）一律放 app/public/，构建时原样复制
+guides/ - 三份手写运维指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)。此前混居在 docs/ 里，既挡着 emptyOutDir 无法开启，本身又被 Pages 当静态文件公开提供。迁出后两个问题一起消失：产物可清理，内部文档不再对外
 drafts/ - 未发布稿的暂存区，已 gitignore。从这里挪进 app/src/content/posts/ 的那一步就是「发布」——posts/ 被 vite 构建期 glob 内联，文件一落进去即上线，不存在草稿态。命名也因此分野：草稿不带日期，发布稿带 YYYY-MM-DD 前缀，该前缀同时充当 /blog/:id 的路由 id
 refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝不可挪回 docs/：那里是 Pages 发布根，入库即等于公开转载
 </directory>
@@ -22,7 +23,7 @@ refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝�
 <config>
 WRITING_STYLE.md - 由 refs/ 提炼的写作风格手册，管「怎么写句子」。写文章前先读它，不要凭印象模仿
 BLOG_PLAYBOOK.md - 本项目自己积累的写作决策，管「写给谁、写什么、怎么配图、怎么发」。与 WRITING_STYLE.md 分工互补，写文章前两份都读。定死了目标读者是零基础普通大众——这条已经漂移过两次，每次都得整篇重写
-app/vite.config.ts - base 默认 /(自定义域名直达根路径)，可用 VITE_BASE_PATH 退回 /personalweb/ 项目站点形态；outDir 默认 ../docs，VITE_OUT_DIR 可改。带错 base 上线即全站资源 404，且本地预览发现不了——本地始终从根提供服务。dev 期 /api/feishu 转发目标由 VITE_PROXY_TARGET 覆盖(默认 :3001)，须与 server/.env 的 PORT 一致；VITE_DEV_HOST 控制监听范围，默认仅本机
+app/vite.config.ts - base 默认 /(自定义域名直达根路径)，可用 VITE_BASE_PATH 退回 /personalweb/ 项目站点形态；outDir 默认 ../docs，VITE_OUT_DIR 可改；emptyOutDir 已开启，前提是 docs/ 内一切都能由构建重建。带错 base 上线即全站资源 404，且本地预览发现不了——本地始终从根提供服务。dev 期 /api/feishu 转发目标由 VITE_PROXY_TARGET 覆盖(默认 :3001)，须与 server/.env 的 PORT 一致；VITE_DEV_HOST 控制监听范围，默认仅本机
 app/src/App.tsx - 采用 HashRouter 而非 BrowserRouter，因 GitHub Pages 无 SPA history fallback，深链刷新会 404
 app/.env - 仅存可公开的 app_id 与 wiki token。VITE_ 前缀的含义就是「交给浏览器」，任何密钥都不得用该前缀；server/.env - app_secret 的唯一归处
 app/public/CNAME - 自定义域名标识，随构建复制进产物。置于 public/ 而非直接放 docs/，否则一旦开启 emptyOutDir 就被清掉

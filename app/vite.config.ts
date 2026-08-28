@@ -19,6 +19,17 @@ export default defineConfig(({ mode }) => {
       // 自托管构建输出到 app/dist，那里已被 gitignore——两份产物形态不同，
       // 混在一个目录会互相覆盖，且带错 base 的产物上线即整站 404。
       outDir: env.VITE_OUT_DIR || "../docs",
+      // 每次构建前清空 outDir。此前不敢开，是因为三份手写指南与产物混居在
+      // docs/ 里，一清就把指南删了；指南已迁至仓库根的 guides/，docs/ 现在
+      // 只剩构建产物，清理是安全的。
+      //
+      // 不开的代价是 assets/ 下的旧 hash 文件只增不减——曾积到 11 个，其中
+      // 9 个早已无人引用，跟着仓库被每个人克隆。
+      //
+      // 前提：docs/ 内的一切都必须能由构建重新生成。CNAME、avatar、封面图
+      // 一律放 app/public/（构建时原样复制），绝不要直接手工丢进 docs/，
+      // 丢进去的下一次构建就没了。
+      emptyOutDir: true,
     },
     plugins: [inspectAttr(), react()],
     resolve: {

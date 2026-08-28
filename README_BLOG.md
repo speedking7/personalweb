@@ -76,9 +76,11 @@ personalweb/
 │   ├── src/
 │   │   └── feishu-proxy.ts        # 飞书 API 代理
 │   └── package.json
-└── docs/
+├── docs/                          # GitHub Pages 发布根（纯构建产物，勿手工放文件）
+└── guides/                        # 手写指南（不对外发布）
     ├── FEISHU_SETUP_GUIDE.md      # 📖 飞书配置完整指南
-    └── FEISHU_BLOG_GUIDE.md       # 博客编写指南
+    ├── FEISHU_BLOG_GUIDE.md       # 博客编写指南
+    └── DEPLOYMENT_GUIDE.md        # 部署指南
 ```
 
 ## 数据源模式
@@ -132,7 +134,7 @@ personalweb/
 
 ### 详细配置指南
 
-📖 **完整配置指南**：[`docs/FEISHU_SETUP_GUIDE.md`](docs/FEISHU_SETUP_GUIDE.md)
+📖 **完整配置指南**：[`guides/FEISHU_SETUP_GUIDE.md`](guides/FEISHU_SETUP_GUIDE.md)
 
 包括：
 - 飞书应用详细配置步骤

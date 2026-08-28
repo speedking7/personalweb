@@ -74,20 +74,44 @@ URL: https://xxx.feishu.cn/wiki/XXX?node_token=YYYYYYYYYYYY
 
 ### 6. 配置环境变量
 
-在项目根目录创建 `app/.env` 文件：
+**配置分两个文件，这不是麻烦，是信任边界。**
+
+`VITE_` 前缀的含义就是「交给浏览器」——带该前缀的变量会被打包进前端产物，
+随 JS 一起发给每一个访问者。所以 App Secret 绝不能带 `VITE_` 前缀，
+也绝不能出现在 `app/` 下的任何 env 文件里。
+
+**其一，`app/.env`** —— 只放可以公开的值：
 
 ```env
-# 飞书应用配置
+# 应用 ID：可公开，仅用于标识应用，单独持有它做不了任何事
 VITE_FEISHU_APP_ID=cli_xxxxxxxxxxxx
-VITE_FEISHU_APP_SECRET=xxxxxxxxxxxxxxxxxxxx
 
-# 知识库配置
+# 知识库与文件夹 Token：可公开，本身不足以越权读取
 VITE_FEISHU_WIKI_TOKEN=xxxxxxxxxxxx
 VITE_FEISHU_BLOG_FOLDER_TOKEN=xxxxxxxxxxxx
 
 # 数据源模式
 VITE_DATA_SOURCE_MODE=auto
 ```
+
+**其二，`server/.env`** —— App Secret 的唯一归处，不带 `VITE_` 前缀：
+
+```env
+FEISHU_APP_ID=cli_xxxxxxxxxxxx
+FEISHU_APP_SECRET=xxxxxxxxxxxxxxxxxxxx
+
+PORT=3001
+CORS_ORIGIN=http://localhost:5173
+```
+
+前端不直接调飞书接口，而是请求 `/api/feishu/*`，由 `server/feishu-proxy.ts`
+持密钥代为调用。代理层存在的唯一理由就是保管这把密钥（顺带用缓存挡住飞书的
+接口频率限制）。
+
+> ⚠️ 曾经的错误写法是把 `VITE_FEISHU_APP_SECRET` 写进 `app/.env`。
+> 那等于把密钥公开发布：浏览器里没有秘密，凡是发到浏览器的东西就等于发到了公网。
+> 若你此前照着旧文档配置过，请立刻到飞书开放平台**重置 App Secret**，
+> 仅仅删掉这一行是不够的——旧密钥可能已随产物散布出去。
 
 ### 7. 启动项目
 
