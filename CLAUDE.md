@@ -14,7 +14,7 @@ auto 模式下飞书失败即回落备源——兜底必须是真文章，绝不
 <directory>
 app/ - 前端单页应用，构建产物输出至 /docs (9子目录: pages 七个路由页面, sections 首页分区, components 导航与评论挂载器+ui 53个 shadcn 基元, config 评论系统配置, content/posts 本地文章 md, data 数据入口与降级决策, lib 飞书客户端+frontmatter 解析, types 领域契约, hooks)
 server/ - 飞书 API 代理层，单文件 Express(feishu-proxy.ts, 201行, 6个端点)。存在的唯一理由是 app_secret 不可下发浏览器，兼以 node-cache 吸收飞书接口限流
-docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。此处构建产物与三份手写指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)混居，且 emptyOutDir 未开启，assets/ 下历史 hash 文件只增不减(现存 8 个)。开启清理即误删文档——此耦合待解
+docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。此处构建产物与三份手写指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)混居，且 emptyOutDir 未开启，assets/ 下历史 hash 文件只增不减(现存 11 个，其中 9 个已无引用，index.html 只指向 2 个)。开启清理即误删文档——此耦合待解
 drafts/ - 未发布稿的暂存区，已 gitignore。从这里挪进 app/src/content/posts/ 的那一步就是「发布」——posts/ 被 vite 构建期 glob 内联，文件一落进去即上线，不存在草稿态。命名也因此分野：草稿不带日期，发布稿带 YYYY-MM-DD 前缀，该前缀同时充当 /blog/:id 的路由 id
 refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝不可挪回 docs/：那里是 Pages 发布根，入库即等于公开转载
 </directory>
