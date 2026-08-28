@@ -94,6 +94,101 @@ export default {
       });
     }
 
+    // ---- 面板：GET /  仅一张静态页面，本身不含任何口令 ----
+    // 存在的理由是摩擦：为看一眼数字而开终端、翻口令、敲一长串 curl，
+    // 这种代价会让人三天后就不看了，功能等于白做。
+    // 口令不放 URL 里——那样会留在浏览器历史与书签中。页面首次打开时问一次，
+    // 存进 localStorage，此后自动带上；换口令按钮清掉它。
+    if (request.method === 'GET' && url.pathname === '/') {
+      return new Response(DASHBOARD, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
+
     return new Response(null, { status: 404, headers });
   },
 };
+
+// 配色取自博客本体：奶白底、炭黑字、烧橙点缀，数字用等宽体。
+// 这页面只有站主会看，但没有理由让它难看。
+const DASHBOARD = `<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>阅读量</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;padding:2.5rem 1.25rem;background:#f0efe9;color:#1a1a1a;
+      font:16px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+ main{max-width:640px;margin:0 auto}
+ h1{font-size:1.25rem;font-weight:500;margin:0 0 .25rem}
+ .sub{color:#6b6b6b;font-size:.875rem;margin:0 0 1.75rem}
+ .card{background:#fff;border-radius:.75rem;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+ input{width:100%;padding:.7rem .85rem;border:1px solid #e5e5e5;border-radius:.5rem;
+       font-size:1rem;font-family:inherit;background:#fafafa}
+ input:focus{outline:none;border-color:#A65D1E;background:#fff}
+ button{margin-top:.75rem;padding:.7rem 1.25rem;border:0;border-radius:.5rem;
+        background:#1a1a1a;color:#fff;font-size:.9375rem;font-family:inherit;cursor:pointer}
+ button:hover{background:#A65D1E}
+ table{width:100%;border-collapse:collapse}
+ td{padding:.7rem 0;border-bottom:1px solid #f0f0f0;vertical-align:baseline}
+ tr:last-child td{border-bottom:0}
+ td.n{text-align:right;width:5.5rem;font-family:'JetBrains Mono',ui-monospace,monospace;
+      font-size:1.0625rem;color:#A65D1E}
+ a{color:#1a1a1a;text-decoration:none}
+ a:hover{color:#A65D1E;text-decoration:underline;text-underline-offset:3px}
+ .slug{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.8125rem;color:#9ca3af}
+ .total{display:flex;justify-content:space-between;margin-top:1.25rem;padding-top:1rem;
+        border-top:1px solid #e5e5e5;color:#6b6b6b;font-size:.875rem}
+ .total b{font-family:'JetBrains Mono',ui-monospace,monospace;color:#1a1a1a;font-weight:500}
+ .err{color:#b91c1c;font-size:.875rem;margin-top:.75rem}
+ .foot{margin-top:1.25rem;font-size:.8125rem;color:#9ca3af}
+ .foot span{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+</style></head><body><main>
+<h1>阅读量</h1>
+<p class="sub">仅站主可见，页面不对读者展示</p>
+<div class="card" id="box">加载中…</div>
+<div class="foot" id="foot"></div>
+<script>
+const K='stats-token', box=document.getElementById('box'), foot=document.getElementById('foot');
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function ask(msg){
+  box.innerHTML='<label>输入统计口令</label>'
+    +'<input id="t" type="password" autocomplete="current-password" placeholder="wrangler secret put STATS_TOKEN 时设的那个">'
+    +'<button id="go">查看</button>'+(msg?'<div class="err">'+esc(msg)+'</div>':'');
+  foot.innerHTML='';
+  const go=()=>{const v=document.getElementById('t').value.trim(); if(v){localStorage.setItem(K,v); load();}};
+  document.getElementById('go').onclick=go;
+  document.getElementById('t').onkeydown=e=>{if(e.key==='Enter')go()};
+  document.getElementById('t').focus();
+}
+
+async function load(){
+  const tk=localStorage.getItem(K);
+  if(!tk) return ask('');
+  box.textContent='加载中…';
+  let res;
+  try{ res=await fetch('/stats?token='+encodeURIComponent(tk)); }
+  catch(e){ box.innerHTML='<div class="err">连接失败，检查网络后重试</div>'; return; }
+  if(res.status===401){ localStorage.removeItem(K); return ask('口令不对，重新输入'); }
+  if(!res.ok){ box.innerHTML='<div class="err">服务返回 '+res.status+'</div>'; return; }
+
+  const data=await res.json();
+  const rows=Object.entries(data);
+  if(!rows.length){
+    box.innerHTML='<div class="sub" style="margin:0">还没有任何记录。'
+      +'去博客点开一篇文章再回来刷新——同一浏览器会话只计一次，想再测一次请用无痕窗口。</div>';
+  }else{
+    const total=rows.reduce((s,[,v])=>s+v,0);
+    box.innerHTML='<table>'+rows.map(([slug,n])=>
+      '<tr><td><a href="https://blog.yingtongxue.cn/#/blog/'+encodeURIComponent(slug)+'" target="_blank" rel="noopener">'
+      +'<div class="slug">'+esc(slug)+'</div></a></td><td class="n">'+n+'</td></tr>').join('')
+      +'</table><div class="total"><span>'+rows.length+' 篇</span><span>合计 <b>'+total+'</b></span></div>';
+  }
+  foot.innerHTML='<span id="rf">刷新</span> · <span id="lo">换口令</span>';
+  document.getElementById('rf').onclick=load;
+  document.getElementById('lo').onclick=()=>{localStorage.removeItem(K); ask('');};
+}
+load();
+</script></main></body></html>`;

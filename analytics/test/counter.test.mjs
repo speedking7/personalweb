@@ -151,6 +151,36 @@ await check('未配置 STATS_TOKEN 时一律 401 —— 忘了配置不等于对
   eq((await worker.fetch(stats(''), e)).status, 401, '带空口令');
 });
 
+console.log('\n面板 GET /');
+
+const dash = () => new Request('https://w.dev/', { method: 'GET' });
+
+await check('返回 200 且是 HTML', async () => {
+  const res = await worker.fetch(dash(), env());
+  eq(res.status, 200, '状态码');
+  eq(res.headers.get('Content-Type'), 'text/html; charset=utf-8', 'Content-Type');
+});
+
+await check('页面本身不含任何口令 —— 口令由浏览器端输入并存本地', async () => {
+  const html = await (await worker.fetch(dash(), env({ STATS_TOKEN: 'super-secret-value' }))).text();
+  if (html.includes('super-secret-value')) throw new Error('口令被写进了页面');
+});
+
+await check('页面不需要鉴权即可打开（它只是张空壳，数据仍要口令才拿得到）', async () => {
+  eq((await worker.fetch(dash(), env({ STATS_TOKEN: undefined }))).status, 200, '状态码');
+});
+
+await check('带 noindex，不被搜索引擎收录', async () => {
+  const html = await (await worker.fetch(dash(), env())).text();
+  if (!/name="robots"[^>]*noindex/.test(html)) throw new Error('缺 noindex');
+});
+
+await check('口令仍然只走 /stats，面板拿不到任何捷径', async () => {
+  // 面板页面里出现的应当是 fetch('/stats?token=…) 这个调用，而非任何已填好的值
+  const html = await (await worker.fetch(dash(), env())).text();
+  if (!html.includes("fetch('/stats?token='")) throw new Error('面板未通过 /stats 取数');
+});
+
 console.log('\n其它');
 
 await check('未知路径返回 404', async () => {

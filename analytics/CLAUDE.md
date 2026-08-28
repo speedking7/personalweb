@@ -16,17 +16,26 @@
 这不是省事，是刻意的：一旦数字回传到页面，下一步必然是显示出来，
 而新站初期公开个位数阅读量对写作者没有任何好处。
 
-读数走另一条路：`GET /stats?token=…`，口令只存在于 Worker 的 secret 里。
+读数有两条路，都要口令：
+
+- `GET /stats?token=…` 返回 JSON，给 curl 和脚本用
+- `GET /` 是一张网页面板，给人用。口令**不放在 URL 里**——那样会留在浏览器历史与书签中；
+  页面首次打开时问一次，存进 localStorage，此后自动带上。面板本身不含任何口令，
+  它只是空壳，数据仍要凭口令向 `/stats` 取。
+
+面板存在的理由是摩擦：为看一眼数字而开终端、翻口令、敲一长串 curl，
+这种代价会让人三天后就不再看，功能等于白做。
 
 ## 成员清单
 
-src/counter.js: Worker 全部实现，两个端点。`/hit` 校验 slug 形如 `YYYY-MM-DD-slug`
+src/counter.js: Worker 全部实现，三个端点。`GET /` 是内嵌的网页面板（含样式，
+配色取自博客本体），带 noindex 不被收录。`/hit` 校验 slug 形如 `YYYY-MM-DD-slug`
 后累加 KV——端点地址随前端产物公开，任何人可 POST，不校验则 KV 会被垃圾键塞满，
 而免费额度按键数算。`/stats` 在 `STATS_TOKEN` 未配置时一律拒绝，绝不默认放行：
 「忘了配置」不应该等于「对全世界开放」。CORS 只回显 `ALLOWED_ORIGIN` 单一来源，
 不写 `*`——写 `*` 等于允许任何站点替你刷数。
 
-test/counter.test.mjs: 16 项断言，`node test/counter.test.mjs` 直接跑，无框架无依赖。
+test/counter.test.mjs: 21 项断言，`node test/counter.test.mjs` 直接跑，无框架无依赖。
 用内存对象顶替 KV，因此不碰网络、不需要 Cloudflare 凭据——**部署前必须先跑通这个**。
 这个 Worker 部署一次要走登录、建 KV、存 secret、deploy 四步，把逻辑错误留到那时候
 才发现，代价远高于在这里跑一遍。覆盖的是行为而非实现：204 不回传内容、累加而非覆盖、

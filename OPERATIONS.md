@@ -86,7 +86,17 @@ npx wrangler deploy                                 # 输出形如 https://perso
 
 然后把那个地址填进 `app/.env` 的 `VITE_VIEW_COUNTER_URL`，重新 `npm run build` 并提交。
 
-看数据：
+看数据，两种方式：
+
+**日常用这个**——浏览器打开 Worker 根地址并收藏，首次输一次口令，之后点开即看：
+
+```
+https://personalweb-views.speedkingblock.workers.dev/
+```
+
+口令存在浏览器 localStorage，不进 URL、不进历史记录。面板上有「刷新」与「换口令」。
+
+**脚本里用这个**：
 
 ```bash
 curl 'https://personalweb-views.xxx.workers.dev/stats?token=你的口令'
