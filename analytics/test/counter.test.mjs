@@ -10,13 +10,16 @@
  */
 import worker from '../src/counter.js';
 
-// 内存版 KV。只实现 Worker 用到的三个方法，不多实现——
+// 内存版 KV。只实现 Worker 真正用到的方法，不多实现——
 // 多出来的部分没有被测代码覆盖，等于凭空增加一份可能与真实 KV 不符的假设。
+// 加 /forget 时这里漏了 delete，测试当场报「env.VIEWS.delete is not a function」。
+// 仿冒件与真件的差距就是这样暴露的：它只在被用到时才暴露。
 function makeKV(init = {}) {
   const store = new Map(Object.entries(init));
   return {
     get: async (k) => (store.has(k) ? store.get(k) : null),
     put: async (k, v) => void store.set(k, String(v)),
+    delete: async (k) => void store.delete(k),
     list: async ({ prefix = '', cursor } = {}) => ({
       keys: [...store.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })),
       list_complete: true,
@@ -151,6 +154,44 @@ await check('未配置 STATS_TOKEN 时一律 401 —— 忘了配置不等于对
   eq((await worker.fetch(stats(''), e)).status, 401, '带空口令');
 });
 
+console.log('\n删除端点 POST /forget');
+
+const forget = (slug, token) =>
+  new Request(`https://w.dev/forget${token === undefined ? '' : `?token=${token}`}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug }),
+  });
+
+await check('口令正确时删除该条，其余条目不受影响', async () => {
+  const e = env({ kv: { 'v:1970-01-01-smoke-test': '3', 'v:2026-08-28-real-post': '7' } });
+  const res = await worker.fetch(forget('1970-01-01-smoke-test', 'secret-token'), e);
+  eq(res.status, 204, '状态码');
+  const left = e.VIEWS._dump();
+  eq('v:1970-01-01-smoke-test' in left, false, '目标是否已删');
+  eq(left['v:2026-08-28-real-post'], '7', '其余条目');
+});
+
+await check('不带口令 401，且不删除任何东西', async () => {
+  const e = env({ kv: { 'v:1970-01-01-smoke-test': '3' } });
+  eq((await worker.fetch(forget('1970-01-01-smoke-test'), e)).status, 401, '状态码');
+  eq(Object.keys(e.VIEWS._dump()).length, 1, '剩余条数');
+});
+
+await check('口令错误 401，且不删除任何东西', async () => {
+  const e = env({ kv: { 'v:1970-01-01-smoke-test': '3' } });
+  eq((await worker.fetch(forget('1970-01-01-smoke-test', 'wrong'), e)).status, 401, '状态码');
+  eq(Object.keys(e.VIEWS._dump()).length, 1, '剩余条数');
+});
+
+await check('未配置 STATS_TOKEN 时一律 401，删除通道不默认敞开', async () => {
+  const e = env({ STATS_TOKEN: undefined, kv: { 'v:1970-01-01-smoke-test': '3' } });
+  eq((await worker.fetch(forget('1970-01-01-smoke-test', 'any'), e)).status, 401, '状态码');
+  eq(Object.keys(e.VIEWS._dump()).length, 1, '剩余条数');
+});
+
+await check('非法 slug 返回 400', async () => {
+  eq((await worker.fetch(forget('../../etc/passwd', 'secret-token'), env())).status, 400, '状态码');
+});
+
 console.log('\n面板 GET /');
 
 const dash = () => new Request('https://w.dev/', { method: 'GET' });
@@ -173,6 +214,12 @@ await check('页面不需要鉴权即可打开（它只是张空壳，数据仍�
 await check('带 noindex，不被搜索引擎收录', async () => {
   const html = await (await worker.fetch(dash(), env())).text();
   if (!/name="robots"[^>]*noindex/.test(html)) throw new Error('缺 noindex');
+});
+
+await check('面板含删除入口，清理不必回到命令行', async () => {
+  const html = await (await worker.fetch(dash(), env())).text();
+  if (!html.includes("'/forget?token='")) throw new Error('面板没有删除通道');
+  if (!html.includes('confirm(')) throw new Error('删除没有二次确认');
 });
 
 await check('口令仍然只走 /stats，面板拿不到任何捷径', async () => {

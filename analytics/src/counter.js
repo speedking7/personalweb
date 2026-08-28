@@ -1,8 +1,10 @@
 /**
  * [INPUT]: 依赖 Cloudflare Workers 运行时的 fetch 事件与 KV 绑定 VIEWS；
  *          依赖环境变量 ALLOWED_ORIGIN（放行的站点来源）与 STATS_TOKEN（读取统计的口令）
- * [OUTPUT]: 对外提供两个端点 —— POST /hit 累加某篇文章的阅读数（不回传数字），
- *           GET /stats?token=… 返回全部计数的 JSON（仅站主可读）
+ * [OUTPUT]: 对外提供四个端点 —— POST /hit 累加某篇文章的阅读数（不回传数字），
+ *           GET /stats?token=… 返回全部计数的 JSON（仅站主可读），
+ *           POST /forget?token=… 删除某条计数（仅站主，用于清理格式合法但不存在的条目），
+ *           GET / 是给人看的网页面板（本身不含口令，取数仍走 /stats）
  * [POS]: analytics/ 的全部实现。存在的唯一理由是 GitHub Pages 是纯静态托管，
  *        页面本身没有任何地方可以记录「这篇被读了多少次」。
  *        它刻意不把数字回传给页面：本站的阅读量只给站主看，不展示给读者，
@@ -94,6 +96,28 @@ export default {
       });
     }
 
+    // ---- 删除：POST /forget  body = {"slug":"…"}  仅站主 ----
+    // slug 校验只管格式，不校验文章是否真实存在——Worker 不掌握文章清单，
+    // 要它去核对就得让它反过来依赖前端，那是错误的依赖方向。
+    // 代价是任何人都能塞进格式合法但不存在的条目。因此必须有一条清理通道，
+    // 且它得在面板上点得到：只能用命令行清理的通道，等于没有通道。
+    if (request.method === 'POST' && url.pathname === '/forget') {
+      if (!env.STATS_TOKEN || url.searchParams.get('token') !== env.STATS_TOKEN) {
+        return new Response('unauthorized', { status: 401 });
+      }
+      let slug;
+      try {
+        ({ slug } = await request.json());
+      } catch {
+        return new Response(null, { status: 400 });
+      }
+      if (typeof slug !== 'string' || !SLUG.test(slug)) {
+        return new Response(null, { status: 400 });
+      }
+      await env.VIEWS.delete(`v:${slug}`);
+      return new Response(null, { status: 204 });
+    }
+
     // ---- 面板：GET /  仅一张静态页面，本身不含任何口令 ----
     // 存在的理由是摩擦：为看一眼数字而开终端、翻口令、敲一长串 curl，
     // 这种代价会让人三天后就不看了，功能等于白做。
@@ -138,6 +162,9 @@ const DASHBOARD = `<!doctype html>
  a{color:#1a1a1a;text-decoration:none}
  a:hover{color:#A65D1E;text-decoration:underline;text-underline-offset:3px}
  .slug{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.8125rem;color:#9ca3af}
+ td.x{width:2rem;text-align:right}
+ td.x span{color:#d4d4d4;cursor:pointer;font-size:1.125rem;line-height:1;padding:0 .25rem}
+ td.x span:hover{color:#b91c1c}
  .total{display:flex;justify-content:space-between;margin-top:1.25rem;padding-top:1rem;
         border-top:1px solid #e5e5e5;color:#6b6b6b;font-size:.875rem}
  .total b{font-family:'JetBrains Mono',ui-monospace,monospace;color:#1a1a1a;font-weight:500}
@@ -183,9 +210,19 @@ async function load(){
     const total=rows.reduce((s,[,v])=>s+v,0);
     box.innerHTML='<table>'+rows.map(([slug,n])=>
       '<tr><td><a href="https://blog.yingtongxue.cn/#/blog/'+encodeURIComponent(slug)+'" target="_blank" rel="noopener">'
-      +'<div class="slug">'+esc(slug)+'</div></a></td><td class="n">'+n+'</td></tr>').join('')
+      +'<div class="slug">'+esc(slug)+'</div></a></td><td class="n">'+n+'</td>'
+      +'<td class="x"><span data-slug="'+esc(slug)+'" title="删除这条记录">&times;</span></td></tr>').join('')
       +'</table><div class="total"><span>'+rows.length+' 篇</span><span>合计 <b>'+total+'</b></span></div>';
   }
+  box.querySelectorAll('td.x span').forEach(el=>el.onclick=async()=>{
+    const s=el.dataset.slug;
+    if(!confirm('删除「'+s+'」的计数记录？\n此操作不可撤销。')) return;
+    el.textContent='…';
+    const r=await fetch('/forget?token='+encodeURIComponent(localStorage.getItem(K)),
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:s})})
+      .catch(()=>null);
+    if(r&&r.status===204) load(); else { el.textContent='\u00d7'; alert('删除失败'+(r?'：HTTP '+r.status:'，连接异常')); }
+  });
   foot.innerHTML='<span id="rf">刷新</span> · <span id="lo">换口令</span>';
   document.getElementById('rf').onclick=load;
   document.getElementById('lo').onclick=()=>{localStorage.removeItem(K); ask('');};
