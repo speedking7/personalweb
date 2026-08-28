@@ -8,6 +8,7 @@
  *        它用内存对象顶替 KV，因此不碰网络、不需要任何凭据
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import vm from 'node:vm';
 import worker from '../src/counter.js';
 
 // 内存版 KV。只实现 Worker 真正用到的方法，不多实现——
@@ -200,6 +201,20 @@ await check('返回 200 且是 HTML', async () => {
   const res = await worker.fetch(dash(), env());
   eq(res.status, 200, '状态码');
   eq(res.headers.get('Content-Type'), 'text/html; charset=utf-8', 'Content-Type');
+});
+
+await check('面板内联的 JS 能被真正解析（不是只查字符串在不在）', async () => {
+  // 这一条是补的。此前 27 项测试全在断言 HTML「包含」某些片段，没有一条解析过 JS，
+  // 于是一个把字符串截断成两行的转义错误直接上了线：DASHBOARD 是模板字符串，
+  // 里面写 \n 会被外层当转义符吃掉，变成真换行插进内层的单引号字符串里，
+  // 整个面板脚本 SyntaxError，一行都不执行。页面照常返回 200、HTML 照常包含
+  // 「换口令」「/forget?token=」等所有片段——旧断言全部通过，功能完全是坏的。
+  //
+  // 教训不是「少写了一条用例」，是「断言的层次不对」：查存在性证明不了可用性。
+  const html = await (await worker.fetch(dash(), env())).text();
+  const m = html.match(/<script>([\s\S]*?)<\/script>/);
+  if (!m) throw new Error('面板里没有 script');
+  new vm.Script(m[1]); // 只编译不执行；语法有误即抛
 });
 
 await check('页面本身不含任何口令 —— 口令由浏览器端输入并存本地', async () => {

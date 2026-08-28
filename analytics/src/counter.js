@@ -216,7 +216,7 @@ async function load(){
   }
   box.querySelectorAll('td.x span').forEach(el=>el.onclick=async()=>{
     const s=el.dataset.slug;
-    if(!confirm('删除「'+s+'」的计数记录？\n此操作不可撤销。')) return;
+    if(!confirm('删除「'+s+'」的计数记录？\\n此操作不可撤销。')) return;
     el.textContent='…';
     const r=await fetch('/forget?token='+encodeURIComponent(localStorage.getItem(K)),
       {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:s})})

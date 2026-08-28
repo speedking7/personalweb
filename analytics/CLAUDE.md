@@ -38,7 +38,7 @@ slug 只校验格式不校验文章是否真实存在（Worker 不掌握文章�
 反向依赖前端），代价是任何人都能塞进格式合法却不存在的条目，因此必须有清理手段，
 且它得在面板上点得到——**只能用命令行清理的通道，等于没有通道**。
 
-test/counter.test.mjs: 27 项断言，`node test/counter.test.mjs` 直接跑，无框架无依赖。
+test/counter.test.mjs: 28 项断言，`node test/counter.test.mjs` 直接跑，无框架无依赖。
 用内存对象顶替 KV，因此不碰网络、不需要 Cloudflare 凭据——**部署前必须先跑通这个**。
 这个 Worker 部署一次要走登录、建 KV、存 secret、deploy 四步，把逻辑错误留到那时候
 才发现，代价远高于在这里跑一遍。覆盖的是行为而非实现：204 不回传内容、累加而非覆盖、
