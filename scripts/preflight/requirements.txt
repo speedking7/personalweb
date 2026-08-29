@@ -1,0 +1,3 @@
+# cover.py 与 fit.py 需要；prose.py 只用标准库
+# 安装：pip install -r scripts/preflight/requirements.txt --break-system-packages
+Pillow>=10.0

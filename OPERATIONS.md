@@ -48,6 +48,16 @@ excerpt: 摘要，不写会截取正文第二段前 100 字
    人工在后台加合集、点发表，再把永久链接回填进 frontmatter 的 `wechat:` 字段。
    细节、五条微信硬约束与全部踩坑记录见 `guides/WECHAT_SYNC.md`
 
+**构建前先跑发稿前验收**（闸门不过就别构建，它拦的都是页面上看不出来的静默失败）：
+
+```bash
+python3 scripts/preflight/prose.py app/src/content/posts/<文章>.md
+python3 scripts/preflight/cover.py app/public/covers/<封面>.jpg
+```
+
+封面不合格时用 `python3 scripts/preflight/fit.py <源图> <输出.jpg> --inset` 加工后重验。
+三个脚本的设计与判据来源见 `scripts/preflight/CLAUDE.md`。
+
 行文风格见项目根 `WRITING_STYLE.md`，里面有可对表的量化指标。
 
 **回填 `wechat:` 字段不需要重新构建部署**：前端一个字段都不消费它，页面显示完全一致。
@@ -192,6 +202,20 @@ giscus，数据存在本仓库的 GitHub Discussions（Announcements 分类）�
    回填 `app/.env` 与 `server/.env`。
 4. `app/src/data/` 下 music.ts 与 photos.ts 是空数组，音乐与相册页面显示空状态。
    这是真实的（尚未添加内容），不是故障。
+5. **前三篇封面的橙色点会被列表页裁掉**，`cover.py` 跑全量因此恒为退出码 1。
+   已知且**决定不修**，不是新问题——跑之前先看这里，别当成刚坏的：
+
+   | 封面 | 橙色点横向 | 1.36:1 存活 | 1.2:1 存活 |
+   |---|---|---|---|
+   | `geb-claude-md.jpg` | 90.4% | 0% | 0% |
+   | `context-engineering.jpg` | 84.6% | 100% | 0% |
+   | `wishing-well.jpg` | 87.6% | 52% | 21% |
+
+   后果是这三篇的读者在列表页看不到那个橙色点，而 BLOG_PLAYBOOK 第五节定的语义
+   恰恰在它身上（点在有语义的物件上，读者读到对应段落会回头认出封面）。
+   不修的理由是代价：`fit.py --inset` 能把三张都救到 100%，但物件要缩到 91%/78.6%/67%，
+   其中两张还会丢纸纹——换已上线内容的观感，不值。**新封面按闸门走**，单跑仍是退出码 0。
+   哪天想还这笔账：`python3 scripts/preflight/fit.py <原图> <同名输出> --inset` 后重新构建部署。
 
 ## 反复踩到的一类坑
 

@@ -158,6 +158,14 @@ WRITING_STYLE 第十节说技术写作必须配可验证证据。对零基础读
 
 ## 四、风格自检（跑脚本，不靠感觉）
 
+```bash
+python3 scripts/preflight/prose.py app/src/content/posts/<文章>.md   # 文章：闸门 5 + 指标 6
+python3 scripts/preflight/cover.py app/public/covers/<封面>.jpg      # 封面：闸门 4 + 指标 2
+```
+
+指标会自动跟**已发篇目的区间**对比，不只对表下面的目标值——只有横向比，
+才分得清某一项是这次失手还是固有偏移。设计与判据来源见 `scripts/preflight/CLAUDE.md`。
+
 WRITING_STYLE.md 第十一节的清单，加上量化对表：
 
 | 指标 | 目标 | 第 3 篇 | 第 4 篇 |
