@@ -6,6 +6,7 @@ cover: covers/geb-claude-md.jpg
 date: 2026-08-26
 readTime: 7
 excerpt: vibe coding 真正的病灶不是 AI 写不出来，是它写完之后没人能再读懂——包括下一次会话的它自己。一份 442 行的提示词给出了另一种解法。
+wechat: https://mp.weixin.qq.com/s/dzsOu-L6IAnnpcmIbWj-bQ
 ---
 
 先说一个你多半经历过的场景。
