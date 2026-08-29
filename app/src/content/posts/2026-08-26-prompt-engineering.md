@@ -6,6 +6,7 @@ cover: covers/prompt-engineering.jpg
 date: 2026-08-26
 readTime: 9
 excerpt: 提示词技巧的保质期比你想象的短，因为它们多半只是给模型缺陷打的补丁。真正不会过期的，是你能不能验证输出好坏。
+wechat: https://mp.weixin.qq.com/s/GBDi4FPQRPF8-jwM8EePjA
 ---
 
 这是这个博客的第一篇。
