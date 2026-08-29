@@ -81,17 +81,65 @@ function precheck(id, meta, html, force) {
   }
 }
 
+/**
+ * 在草稿箱里找这篇文章对应的草稿。
+ *
+ * 判据用 `content_source_url` 而非标题：那个字段是 `blogBase/#/blog/{id}`，
+ * 与文章一一对应，改标题也不会漂——跟「用路由形状而非域名识别站内链接」是同一个道理，
+ * 拿一个会变的东西当判据，等于在最需要认准的时候认错。
+ *
+ * 分页扫完整个草稿箱：batchget 一次最多 20 条，只看第一页会在草稿攒多之后悄悄漏掉目标。
+ */
+async function findExistingDraft(accessToken, id, config) {
+  const sourceUrl = `${config.blogBase}/#/blog/${id}`;
+  const matches = [];
+
+  for (let offset = 0; ; offset += 20) {
+    const page = await postJson('/cgi-bin/draft/batchget', accessToken, {
+      offset, count: 20, no_content: 1,
+    });
+    const items = page.item ?? [];
+    for (const item of items) {
+      const article = item.content?.news_item?.[0];
+      if (article?.content_source_url === sourceUrl) {
+        matches.push({ mediaId: item.media_id, thumbMediaId: article.thumb_media_id, title: article.title });
+      }
+    }
+    if (items.length < 20 || offset + 20 >= (page.total_count ?? 0)) break;
+  }
+
+  if (matches.length === 0) {
+    throw new DraftError(
+      `草稿箱里没有《${id}》对应的草稿（按「阅读原文」= ${sourceUrl} 匹配）。\n` +
+      `    可能它已经发表了（发表后就不在草稿箱里），也可能压根没送过。\n` +
+      `    去掉 --update 就是新建一篇。`
+    );
+  }
+  if (matches.length > 1) {
+    throw new DraftError(
+      `草稿箱里有 ${matches.length} 条草稿指向《${id}》，不知道该更新哪一条：\n` +
+      matches.map((m) => `      · ${m.title}（${m.mediaId}）`).join('\n') +
+      `\n    先去后台删掉多余的那些。`
+    );
+  }
+  return matches[0];
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const force = args.includes('--force');
+  const update = args.includes('--update');
   const id = args.find((a) => !a.startsWith('--'))?.replace(/\.md$/, '');
 
   if (!id) {
-    console.log('用法：node scripts/wechat/draft.mjs <文章 id> [--force]');
+    console.log('用法：node scripts/wechat/draft.mjs <文章 id> [--update] [--force]');
     console.log('');
     console.log('把文章送进公众号草稿箱，标题/摘要/正文/封面/阅读原文全部填好，');
     console.log('你只需要去后台点「发表」——freepublish 对个人主体已被官方回收，');
     console.log('而且公众号发布不可逆，那一下本就该由人来点。');
+    console.log('');
+    console.log('  --update  刷新草稿箱里已有的那篇（样式改了之后用），封面沿用不重传');
+    console.log('  --force   这篇 frontmatter 已有 wechat 链接、多半发过了，仍要送稿');
     process.exit(1);
   }
 
@@ -100,49 +148,72 @@ async function main() {
 
   // 链接改写与出厂不变量都在这一步跑完；有坏链接会在联网之前就中断
   const { meta, html, internalLinks } = renderArticle(id, { config, stylesheet });
-  precheck(id, meta, html, force);
+  // --update 下不查 wechat 字段：那条检查防的是「已发过还重复送稿」，
+  // 而 update 是明确要改草稿箱里那一篇，两回事
+  precheck(id, meta, html, force || update);
 
   const credentials = loadCredentials();
   const accessToken = await getAccessToken(credentials);
   console.log('已取得 access_token');
 
-  const coverPath = join(REPO_ROOT, 'app/public', meta.coverImage);
-  const cover = await uploadPermanentImage(accessToken, coverPath);
-  console.log(`封面已上传：${meta.coverImage}`);
+  const article = {
+    title: meta.title,
+    author: '',
+    digest: meta.excerpt ?? '',
+    content: html,
+    content_source_url: `${config.blogBase}/#/blog/${id}`,
+    need_open_comment: 0,
+    only_fans_can_comment: 0,
+  };
 
-  let draft;
-  try {
-    draft = await postJson('/cgi-bin/draft/add', accessToken, {
-      articles: [
-        {
-          title: meta.title,
-          author: '',
-          digest: meta.excerpt ?? '',
-          content: html,
-          content_source_url: `${config.blogBase}/#/blog/${id}`,
-          thumb_media_id: cover.mediaId,
-          need_open_comment: 0,
-          only_fans_can_comment: 0,
-        },
-      ],
+  let draftMediaId;
+
+  if (update) {
+    const existing = await findExistingDraft(accessToken, id, config);
+    console.log(`找到草稿：${existing.title}`);
+
+    // 封面沿用草稿箱里那张，不重传。重传等于在素材库留一份内容相同的副本，
+    // 而素材库有配额上限；要换封面就删掉草稿重新送稿。
+    await postJson('/cgi-bin/draft/update', accessToken, {
+      media_id: existing.mediaId,
+      index: 0,
+      articles: { ...article, thumb_media_id: existing.thumbMediaId },
     });
-  } catch (error) {
-    // 草稿没建成，刚传的封面就是垃圾。不回滚的话素材库会随每次失败堆积，
-    // 而素材库有配额上限。
-    await deleteMaterial(accessToken, cover.mediaId, true);
-    console.error('草稿创建失败，已回滚刚上传的封面素材。');
-    throw error;
+    draftMediaId = existing.mediaId;
+    console.log('已更新，封面沿用原来那张（未重传）');
+  } else {
+    const coverPath = join(REPO_ROOT, 'app/public', meta.coverImage);
+    const cover = await uploadPermanentImage(accessToken, coverPath);
+    console.log(`封面已上传：${meta.coverImage}`);
+
+    try {
+      const created = await postJson('/cgi-bin/draft/add', accessToken, {
+        articles: [{ ...article, thumb_media_id: cover.mediaId }],
+      });
+      draftMediaId = created.media_id;
+    } catch (error) {
+      // 草稿没建成，刚传的封面就是垃圾。不回滚的话素材库会随每次失败堆积，
+      // 而素材库有配额上限。
+      await deleteMaterial(accessToken, cover.mediaId, true);
+      console.error('草稿创建失败，已回滚刚上传的封面素材。');
+      throw error;
+    }
   }
 
   console.log('');
   console.log('─'.repeat(60));
-  console.log(`《${meta.title}》已进草稿箱`);
+  console.log(`《${meta.title}》${update ? '已刷新' : '已进草稿箱'}`);
   console.log('─'.repeat(60));
   console.log('');
-  console.log('已经替你填好的：');
+  if (update) {
+    console.log('注意：正文被整篇替换成了本次生成的版本，');
+    console.log('      你此前在后台对这篇做过的手工调整会被覆盖掉。');
+    console.log('');
+  }
+  console.log(update ? '现在草稿里是：' : '已经替你填好的：');
   console.log(`  标题      ${meta.title}`);
   console.log(`  摘要      ${meta.excerpt ?? '(空)'}`);
-  console.log(`  封面      ${meta.coverImage}`);
+  console.log(`  封面      ${update ? '沿用草稿里原有的那张' : meta.coverImage}`);
   console.log(`  阅读原文  ${config.blogBase}/#/blog/${id}`);
   console.log(`  正文      ${(Buffer.byteLength(html, 'utf8') / 1024).toFixed(1)}KB，样式已内联`);
 
@@ -163,7 +234,7 @@ async function main() {
   console.log(`     ${join(POSTS_DIR, id + '.md')}  的 frontmatter：`);
   console.log('     wechat: https://mp.weixin.qq.com/s/...');
   console.log('');
-  console.log(`草稿 media_id（要撤回时用得上）：${draft.media_id}`);
+  console.log(`草稿 media_id（要撤回时用得上）：${draftMediaId}`);
   console.log('');
 }
 
