@@ -6,6 +6,7 @@ cover: covers/context-engineering.jpg
 date: 2026-08-27
 readTime: 12
 excerpt: 别人用得神乎其神，你用起来像个人工智障。差的不是模型，也不是什么高级咒语，是一样你从来没听说过、但每天都在浪费的东西——上下文。这篇写给完全没接触过的人。
+wechat: https://mp.weixin.qq.com/s/CwAeYKvFaE9qHzuZQqag5Q
 ---
 
 [前两篇](https://blog.yingtongxue.cn/#/blog)发出去之后，收到最多的不是技术问题。
