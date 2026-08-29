@@ -212,8 +212,9 @@ holograms, 3D render look.
 - 第 2 篇：chaos becoming an ordered, navigable structure
 - 第 3 篇：the same limited surface, buried versus deliberately used
 - 第 4 篇：watching from the edge versus getting into the water
+- 第 5 篇：identical from the outside, revealed only when cut open
 
-### 两条经验
+### 五条经验
 
 - **不要画家具或环境。** 前两篇全是悬浮实物，加一张木桌就会引入木纹、透视、第三种材质，立刻脱节。要表达「桌面」，用**一条细横线**代替——第 2 篇的纸堆基座本来就是这个语汇。
 - **物件必须离画幅左右边缘留出余量，不要满幅出血。** 桌面版列表页是
@@ -222,6 +223,8 @@ holograms, 3D render look.
   且**无法靠后期补救**——第 3 篇能救是因为中间有 214px 纯留白可抽掉合拢，
   满幅出血的图抽完两边仍顶着边。提示词里加一句
   `with all objects inset well away from the left and right edges`。
+- **别用几何措辞描述位置。** `central two thirds of the frame` 这类话会被当成「要画出来的区域」——第 5 篇实测，模型真画了个居中面板出来，两侧另换一种背景色，顶部取样的横向色差从 3 跳到 5，跳变点精确落在 15% 和 90%。要约束位置就只描述物件之间的关系（谁在谁旁边、中间隔多远、不许靠近画幅边缘），并把「背景通铺一色、左中右完全一致」单独提成一条硬约束写在提示词最前面，`Absolutely avoid:` 里再补一句 `any rectangular panel or band of a different background shade`。
+- **物件顶到边不必重出图，后期等比缩放就能救。** 把整幅内容按目标占宽等比缩小后居中，背景取原图顶部那条纯背景拉伸铺满——纸纹跟着保留，接缝看不出来，构图比例一点不动。上面那条「抽中间留白合拢」只在中间有富余留白时可用，满幅出血时失效；等比缩放没这个限制。第 5 篇实测缩到 50.5%，物件从 4.0%~95.9% 变成 16.7%~83.2%，1.36:1 与 1.2:1 两种裁切下全部物件与橙色点都是 100% 存活。**这三版换来的判断是：留白是后期能补的，风格不是。**每重出一次就坏一样别的东西——第一版整瓜是干净的炭灰线条，第二版就被填了灰。
 - **橙色点在有语义的那个物件上。** 第 3 篇点在钥匙上，因为文中 MCP 的比喻就是「给他一把钥匙」，读者读到那节会回头认出封面。
 
 ### 出图后
