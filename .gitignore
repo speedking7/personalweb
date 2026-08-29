@@ -46,3 +46,8 @@ drafts/
 # 产出本身是原创提炼（不含原文），但对象是未授权的在世作者，
 # 故不公开分发。只挡这一个，不封整个 .claude/——项目级配置仍应入库。
 .claude/skills/xifeng-perspective/
+
+## 公众号转换产物
+# 纯中间物，由 scripts/wechat/build.mjs 随时重建，与 docs/ 同理：
+# 能被重建的东西入库只会制造「产物与源码不同步」的假象
+scripts/wechat/out/

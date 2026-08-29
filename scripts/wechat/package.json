@@ -1,0 +1,14 @@
+{
+  "name": "wechat-sync",
+  "private": true,
+  "type": "module",
+  "description": "把 app/src/content/posts 的文章转成微信公众号可粘贴的 HTML。与网站运行期无关，故自带依赖，不进 app 的依赖树。",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "juice": "^12.1.2",
+    "marked": "^18.0.11",
+    "postcss": "^8.5.26"
+  }
+}

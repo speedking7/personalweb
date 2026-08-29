@@ -16,7 +16,8 @@ app/ - 前端单页应用，构建产物输出至 /docs (9子目录: pages 七�
 server/ - 飞书 API 代理层，单文件 Express(feishu-proxy.ts, 201行, 6个端点)。存在的唯一理由是 app_secret 不可下发浏览器，兼以 node-cache 吸收飞书接口限流
 analytics/ - 阅读量计数服务，已部署在 Cloudflare Workers(单文件 counter.js, 四个端点 + 28 项测试)。GET / 是给站主看的网页面板，口令存浏览器 localStorage 不进 URL；POST /forget 是清理通道，因为 slug 只校验格式不校验文章是否存在。存在的理由是 Pages 纯静态、页面自身无处记录阅读数，而 server/ 线上并不存在。刻意不把数字回传前端：阅读量只给站主看，读数走 /stats?token=…，口令只在 Worker secret 里。未配置 VITE_VIEW_COUNTER_URL 时前端一个请求都不发
 docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。**纯构建产物，禁止手工放文件**——emptyOutDir 已开启，每次构建前整目录清空，手工丢进去的东西下一次构建就没了。要随产物发布的静态文件（CNAME、头像、封面）一律放 app/public/，构建时原样复制
-guides/ - 三份手写运维指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP)。此前混居在 docs/ 里，既挡着 emptyOutDir 无法开启，本身又被 Pages 当静态文件公开提供。迁出后两个问题一起消失：产物可清理，内部文档不再对外
+guides/ - 四份手写运维指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP/WECHAT_SYNC)。此前混居在 docs/ 里，既挡着 emptyOutDir 无法开启，本身又被 Pages 当静态文件公开提供。迁出后两个问题一起消失：产物可清理，内部文档不再对外
+scripts/ - 开发期工具，与网站运行期无关故自带依赖、不进 app 的依赖树(现有 wechat/，把文章转成公众号可粘贴 HTML，50 项测试)。**只做转换不做发布**：公众号是个人主体，微信 2025 年 7 月起对该类主体回收 freepublish 接口权限，这是资质门槛不是技术难题；能绕开的浏览器自动化正撞在 2026 年 3 月平台规范上，不碰。产物落 scripts/wechat/out/ 已 gitignore
 drafts/ - 未发布稿的暂存区，已 gitignore。从这里挪进 app/src/content/posts/ 的那一步就是「发布」——posts/ 被 vite 构建期 glob 内联，文件一落进去即上线，不存在草稿态。命名也因此分野：草稿不带日期，发布稿带 YYYY-MM-DD 前缀，该前缀同时充当 /blog/:id 的路由 id
 research/ - 自己跑出来的研究数据，可公开引用故入库(现有 context-experiment，60 次上下文对照实验)。归档只增不改：旧数据的价值在于记录了当时的结论怎么得出，改了就失去对账能力。与 refs/ 的分野是「自己的」与「他人的」
 refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝不可挪回 docs/：那里是 Pages 发布根，入库即等于公开转载
@@ -27,12 +28,13 @@ WRITING_STYLE.md - 由 refs/ 提炼的写作风格手册，管「怎么写句子
 BLOG_PLAYBOOK.md - 本项目自己积累的写作决策，管「写给谁、写什么、怎么配图、怎么发」。与 WRITING_STYLE.md 分工互补，写文章前两份都读。定死了目标读者是零基础普通大众——这条已经漂移过两次，每次都得整篇重写
 app/vite.config.ts - base 默认 /(自定义域名直达根路径)，可用 VITE_BASE_PATH 退回 /personalweb/ 项目站点形态；outDir 默认 ../docs，VITE_OUT_DIR 可改；emptyOutDir 已开启，前提是 docs/ 内一切都能由构建重建。带错 base 上线即全站资源 404，且本地预览发现不了——本地始终从根提供服务。dev 期 /api/feishu 转发目标由 VITE_PROXY_TARGET 覆盖(默认 :3001)，须与 server/.env 的 PORT 一致；VITE_DEV_HOST 控制监听范围，默认仅本机
 app/src/App.tsx - 采用 HashRouter 而非 BrowserRouter，因 GitHub Pages 无 SPA history fallback，深链刷新会 404
-app/src/index.css - 文章正文样式的唯一出处。**没有装 @tailwindcss/typography**，所以 JSX 里任何 prose-p:/prose-a:/prose-code: 之类的修饰类都是空类，写了不生效却看着像生效——改正文外观只能改这里的手写 .prose 规则。正文链接取 #A65D1E：与封面烧橙同色相，压暗到对白底 4.99:1 过 WCAG AA；颜色之外必带下划线，只靠颜色标记链接对色觉障碍读者等于不可见。文章内互指用 blog.yingtongxue.cn 完整地址而非相对 hash 路径，后者一旦内容被复制到站外即成死链
+app/src/index.css - 文章正文样式的唯一出处。**没有装 @tailwindcss/typography**，所以 JSX 里任何 prose-p:/prose-a:/prose-code: 之类的修饰类都是空类，写了不生效却看着像生效——改正文外观只能改这里的手写 .prose 规则。正文链接取 #A65D1E：与封面烧橙同色相，压暗到对白底 4.99:1 过 WCAG AA；颜色之外必带下划线，只靠颜色标记链接对色觉障碍读者等于不可见。文章内互指用 blog.yingtongxue.cn 完整地址而非相对 hash 路径，后者一旦内容被复制到站外即成死链。**这份 .prose 现在有两个消费者**：博客正文，以及 scripts/wechat/styles.mjs——公众号版的样式基线就是从这里抽的，改一处两边同时变，这是刻意的（另写一份必然分家），但动手前要知道影响面不止网页
 app/.env - 仅存可公开的 app_id 与 wiki token。VITE_ 前缀的含义就是「交给浏览器」，任何密钥都不得用该前缀；server/.env - app_secret 的唯一归处
 app/public/CNAME - 自定义域名标识，随构建复制进产物。置于 public/ 而非直接放 docs/，否则一旦开启 emptyOutDir 就被清掉
 app/src/config/giscus.ts - 评论系统配置，categoryId 等需人工获取的值只有这一个填写位；缺配置时组件显式提示，不留空白假装加载中
 start.sh - 一键拉起 server(:3001)+app(:5173)，含依赖与 .env 缺失前置检查
 OPERATIONS.md - 部署形态、发布流程、阅读量计数的部署与查看、已停服务的恢复方式、尚未清理的历史账，以及「反复踩到的一类坑」与「验证自身也会骗人」两节积累的教训
+guides/WECHAT_SYNC.md - 公众号同步的设计与操作合一。先讲清「为什么发布这步自动不了」(个人主体、2025-07 接口权限回收、认证只对企业开放)，再列微信环境的四条硬约束(只认内联样式/正文外链点不动/阅读原文是唯一对外出口且发布后锁死/正文图片须腾讯域名)，最后是每次发布的六步。想动自动发布的念头前先读它
 </config>
 
 法则: 极简·稳定·导航·版本精确
