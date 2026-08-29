@@ -17,7 +17,7 @@ server/ - 飞书 API 代理层，单文件 Express(feishu-proxy.ts, 201行, 6个
 analytics/ - 阅读量计数服务，已部署在 Cloudflare Workers(单文件 counter.js, 四个端点 + 28 项测试)。GET / 是给站主看的网页面板，口令存浏览器 localStorage 不进 URL；POST /forget 是清理通道，因为 slug 只校验格式不校验文章是否存在。存在的理由是 Pages 纯静态、页面自身无处记录阅读数，而 server/ 线上并不存在。刻意不把数字回传前端：阅读量只给站主看，读数走 /stats?token=…，口令只在 Worker secret 里。未配置 VITE_VIEW_COUNTER_URL 时前端一个请求都不发
 docs/ - GitHub Pages 发布根，同时是 vite build 的 outDir。**纯构建产物，禁止手工放文件**——emptyOutDir 已开启，每次构建前整目录清空，手工丢进去的东西下一次构建就没了。要随产物发布的静态文件（CNAME、头像、封面）一律放 app/public/，构建时原样复制
 guides/ - 四份手写运维指南(DEPLOYMENT/FEISHU_BLOG/FEISHU_SETUP/WECHAT_SYNC)。此前混居在 docs/ 里，既挡着 emptyOutDir 无法开启，本身又被 Pages 当静态文件公开提供。迁出后两个问题一起消失：产物可清理，内部文档不再对外
-scripts/ - 开发期工具，与网站运行期无关故自带依赖、不进 app 的依赖树(现有 wechat/，把文章转成公众号可粘贴 HTML，57 项测试，产 .md 与 .html 两种形态)。**只做转换不做发布**：公众号是个人主体，微信 2025 年 7 月起对该类主体回收 freepublish 接口权限，这是资质门槛不是技术难题；能绕开的浏览器自动化正撞在 2026 年 3 月平台规范上，不碰。产物落 scripts/wechat/out/ 已 gitignore
+scripts/ - 开发期工具，与网站运行期无关故自带依赖、不进 app 的依赖树(现有 wechat/，博文同步公众号，57 项测试)。**做到草稿箱为止**：draft.mjs 一条命令把标题/摘要/正文/封面/阅读原文全部填好送进草稿箱，人工只剩点「发表」——freepublish 对个人主体已被官方回收(2025-07)，而 draft/add 与 add_material 本账号实测可用，两者不是一回事。绕开回收的浏览器自动化正撞在 2026-03 平台规范上，不碰。build.mjs 另产 .md 与 .html 作退路(IP 白名单是家宽公网 IP，会变)。凭据在 scripts/wechat/.env，产物落 scripts/wechat/out/，均已 gitignore
 drafts/ - 未发布稿的暂存区，已 gitignore。从这里挪进 app/src/content/posts/ 的那一步就是「发布」——posts/ 被 vite 构建期 glob 内联，文件一落进去即上线，不存在草稿态。命名也因此分野：草稿不带日期，发布稿带 YYYY-MM-DD 前缀，该前缀同时充当 /blog/:id 的路由 id
 research/ - 自己跑出来的研究数据，可公开引用故入库(现有 context-experiment，60 次上下文对照实验)。归档只增不改：旧数据的价值在于记录了当时的结论怎么得出，改了就失去对账能力。与 refs/ 的分野是「自己的」与「他人的」
 refs/ - 他人作品的本地研习资料(35篇/37万字)，已 gitignore。绝不可挪回 docs/：那里是 Pages 发布根，入库即等于公开转载
