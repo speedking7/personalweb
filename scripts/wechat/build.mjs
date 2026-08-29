@@ -195,6 +195,25 @@ function hasLeftoverFrontmatter(content) {
 }
 
 /**
+ * 代码块渲染。换行用 <br>、缩进用 &nbsp;，都不能指望默认样式。
+ *
+ * 2026-08 实测：把带真实换行符的 <pre><code> 送进 draft/add 之后拉回来看，
+ * 标签与内联样式都完好保留，**但换行符被微信换成了 `&nbsp;`**——
+ * 整段代码挤成一行。这不是样式丢失（加 white-space 救不回来），
+ * 是换行在内容层面就被吃掉了，所以必须在送进去之前把它变成结构性的 <br>。
+ * 微信保留标签结构，<br> 因而活得下来。
+ *
+ * 行首缩进同样转成 &nbsp;：普通空格在 HTML 里会被折叠，代码的对齐全靠它。
+ * tab 按 4 空格算——本站文章里的代码块都是空格缩进，这条只是兜底。
+ */
+function renderCodeBlock(token) {
+  const lines = escapeHtml(token.text).split('\n').map((line) =>
+    line.replace(/^[ \t]+/, (indent) => '&nbsp;'.repeat(indent.replace(/\t/g, '    ').length))
+  );
+  return `<pre><code>${lines.join('<br>')}</code></pre>`;
+}
+
+/**
  * 把一篇文章渲染成可粘贴的正文 HTML。
  *
  * 导出而非内联在 CLI 里，是为了让测试驱动真实管线——
@@ -239,7 +258,9 @@ export function renderArticle(id, { config, stylesheet, readPost = readPostFromD
   // 两条通道各建一个实例：收集器是实例内的，共用一个会把 footnotes 收两遍。
   // 分流规则仍只有 links.mjs 的 classify 一份。
   const htmlRewriter = createLinkRewriter(deps);
-  const body = new Marked({ renderer: htmlRewriter.renderer }).parse(meta.content);
+  const body = new Marked({
+    renderer: { ...htmlRewriter.renderer, code: renderCodeBlock },
+  }).parse(meta.content);
   if (htmlRewriter.missing.length > 0) {
     throw new MissingLinkError(id, htmlRewriter.missing);
   }

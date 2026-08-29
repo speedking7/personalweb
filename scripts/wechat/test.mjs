@@ -305,6 +305,25 @@ await check('代码块内联了深色底与手机字号', async () => {
   has(html, 'font-size: 13px', '代码块字号');
 });
 
+// 2026-08 实测：带真实换行符的 <pre><code> 送进 draft/add 后拉回来看，
+// 标签与样式都在，但换行被微信换成了 &nbsp;，整段代码挤成一行。
+// 换行必须在送进去之前就变成结构性的 <br>，加 white-space 救不回来。
+await check('代码块换行用 <br>，不留裸换行给微信吃掉', async () => {
+  const { html } = pipeline('```\nconst a = 1;\nconst b = 2;\n```');
+  has(html, 'const a = 1;<br>const b = 2;', '换行');
+});
+
+await check('代码块行首缩进转 &nbsp;，普通空格会被 HTML 折叠', async () => {
+  const { html } = pipeline('```\nif (x) {\n    return 1;\n}\n```');
+  has(html, '&nbsp;&nbsp;&nbsp;&nbsp;return 1;', '四格缩进');
+});
+
+await check('代码块里的尖括号仍被转义，不会当成标签', async () => {
+  const { html } = pipeline('```\n<identity>\n```');
+  has(html, '&lt;identity&gt;', '转义');
+  hasNot(html, '<identity>', '未转义的裸标签');
+});
+
 await check('产物里没有 style 标签与 class 选择器残留（微信一律过滤）', async () => {
   const { html } = pipeline('一段正文。');
   hasNot(html, '<style', 'style 标签');
