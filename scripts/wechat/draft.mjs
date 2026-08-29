@@ -27,6 +27,7 @@ const CONFIG_PATH = join(HERE, 'config.json');
 // 提前在本地拦住，比让人等一次网络往返再看 errcode 强。
 const TITLE_LIMIT = 32;
 const DIGEST_LIMIT = 120;
+const AUTHOR_LIMIT = 16;
 
 class DraftError extends UserFacingError {}
 
@@ -39,7 +40,7 @@ function readPost(id) {
  * 送稿前的本地检查。
  * 全部检查完再一次性报，不要让人改一条跑一次。
  */
-function precheck(id, meta, html, force) {
+function precheck(id, meta, html, force, config) {
   const problems = [];
 
   const title = meta.title ?? '';
@@ -51,6 +52,11 @@ function precheck(id, meta, html, force) {
   const digest = meta.excerpt ?? '';
   if ([...digest].length > DIGEST_LIMIT) {
     problems.push(`摘要 ${[...digest].length} 字，超出公众号 ${DIGEST_LIMIT} 字上限，需裁剪 frontmatter 的 excerpt`);
+  }
+
+  const author = config.author ?? '';
+  if ([...author].length > AUTHOR_LIMIT) {
+    problems.push(`作者名 ${[...author].length} 字，超出公众号 ${AUTHOR_LIMIT} 字上限：${author}`);
   }
 
   if (!meta.coverImage) {
@@ -150,7 +156,7 @@ async function main() {
   const { meta, html, internalLinks } = renderArticle(id, { config, stylesheet });
   // --update 下不查 wechat 字段：那条检查防的是「已发过还重复送稿」，
   // 而 update 是明确要改草稿箱里那一篇，两回事
-  precheck(id, meta, html, force || update);
+  precheck(id, meta, html, force || update, config);
 
   const credentials = loadCredentials();
   const accessToken = await getAccessToken(credentials);
@@ -158,7 +164,7 @@ async function main() {
 
   const article = {
     title: meta.title,
-    author: '',
+    author: config.author ?? '',
     digest: meta.excerpt ?? '',
     content: html,
     content_source_url: `${config.blogBase}/#/blog/${id}`,
@@ -212,6 +218,7 @@ async function main() {
   }
   console.log(update ? '现在草稿里是：' : '已经替你填好的：');
   console.log(`  标题      ${meta.title}`);
+  console.log(`  作者      ${config.author || '(config.json 未配 author)'}`);
   console.log(`  摘要      ${meta.excerpt ?? '(空)'}`);
   console.log(`  封面      ${update ? '沿用草稿里原有的那张' : meta.coverImage}`);
   console.log(`  阅读原文  ${config.blogBase}/#/blog/${id}`);
@@ -229,8 +236,16 @@ async function main() {
   console.log('接下来（这几步只能人工）：');
   console.log('  1. 打开公众号后台的草稿箱，找到这篇');
   console.log('  2. 预览，确认排版与链接');
-  console.log('  3. 点「发表」——发出去之后正文不可修改，阅读原文更是永久锁死');
-  console.log('  4. 复制文章的永久链接，回填进');
+  if (config.albumName) {
+    // draft/add 的 articles 字段表里没有任何合集相关参数，API 指定不了，
+    // 只能在后台人工选。工具做不到的事，至少在清单里点名，别让人漏。
+    console.log(`  3. 把它加进合集「${config.albumName}」——这一步 API 做不到，只能在后台选`);
+    console.log('  4. 点「发表」——发出去之后正文不可修改，阅读原文更是永久锁死');
+    console.log('  5. 复制文章的永久链接，回填进');
+  } else {
+    console.log('  3. 点「发表」——发出去之后正文不可修改，阅读原文更是永久锁死');
+    console.log('  4. 复制文章的永久链接，回填进');
+  }
   console.log(`     ${join(POSTS_DIR, id + '.md')}  的 frontmatter：`);
   console.log('     wechat: https://mp.weixin.qq.com/s/...');
   console.log('');
