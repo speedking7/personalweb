@@ -14,8 +14,9 @@
 
 链接正确性上有**事前分类**与**事后不变量**两层，互补且不可互相取代。
 分类（`links.mjs`）按规则分流并给出精确诊断——哪篇没发、哪个 id 写错、哪个字段填歪；
-不变量（`build.mjs` 的 `assertOnlyWechatLinks`）在 juice 之后扫一遍最终 HTML，
-凡 `<a href>` 不指向 `mp.weixin.qq.com` 一律中止。
+不变量在两种产物上各有一道：`assertOnlyWechatLinks` 在 juice 之后扫最终 HTML，
+`assertOnlyWechatLinksInMarkdown` 走 lexer 查 md 里的 link token 与内嵌 HTML，
+凡链接不指向 `mp.weixin.qq.com` 一律中止。两条通道都要守，导入那条一样会被坏链接穿过。
 
 两层都要，因为分类只覆盖它认识的 token：正文里直接写的裸 HTML `<a>` 走 `html` token，
 从 renderer 旁边绕过去；将来 marked 新增别的产链接的 token 也一样。不变量是兜底的那张网。
@@ -30,7 +31,13 @@
 就只能靠肉眼验，而它们恰恰是缺陷最容易藏身的接缝。自身不含格式规则：
 frontmatter 规则在 `app/src/lib/markdown.ts`，样式在 `app/src/index.css`，链接规则在 `links.mjs`。
 
-`links.mjs`: 链接分流核心，业务逻辑最密的一块。微信正文只认 `mp.weixin.qq.com` 域名，
+`links.mjs`: 链接分流核心，业务逻辑最密的一块。分流的**决策**集中在 `classify` 一处，
+HTML renderer 与 `rewriteMarkdown` 两条输出通道共用它——后台既能粘贴 HTML 也能导入 markdown，
+两条通道的链接规则必须是同一份，否则就是两套会各自漂移的逻辑。
+`rewriteMarkdown` 走 lexer 而非正则扫全文：围栏代码块里的 `[文字](地址)` 不是链接，
+正则分不清而 lexer 分得清，本项目的文章里正好有展示 markdown 写法的代码块。
+md 输出中凡「不该是链接」的地址都用反引号锁成行内代码，否则 GFM 的 autolink 会把它变回链接。
+微信正文只认 `mp.weixin.qq.com` 域名，
 其余外链地址会被丢弃且点击无反应，因此所有链接必须在渲染期分流：站内单篇换公众号永久链接、
 列表页换合集链接、外链剥 `<a>` 并按地址去重收进文末清单。`lookupPost` 返回 `{ exists, url }`
 而非单个 url，是因为「posts/ 里没这篇」与「有这篇但没发公众号」处置完全不同——
@@ -54,7 +61,7 @@ frontmatter 规则在 `app/src/lib/markdown.ts`，样式在 `app/src/index.css`�
 刻意不自带正文样式表：`index.css` 是站内正文样式的唯一出处，另写一份必然与博客分家。
 覆盖层每条都须在注释里写明理由，否则它会慢慢长成一份独立样式表。
 
-`test.mjs`: 50 项断言，`node scripts/wechat/test.mjs` 直接跑，失败退出码非 0。分两层——
+`test.mjs`: 57 项断言，`node scripts/wechat/test.mjs` 直接跑，失败退出码非 0。分两层——
 链接分流的单元断言，以及经 `renderArticle` 驱动的真管线断言（juice 内联、文末清单转义、
 出厂不变量只在那一层才看得见）。全部注入假文章，不读也不改真实文章的发布状态。
 

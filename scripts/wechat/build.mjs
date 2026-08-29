@@ -79,6 +79,37 @@ function assertOnlyWechatLinks(html) {
 }
 
 /**
+ * markdown 通道的同一道不变量。
+ *
+ * 公众号后台的「文档导入」直接吃 markdown，那条通道同样会被坏链接穿过，
+ * 所以两种产物各有一道，不能只守 HTML 那边。
+ *
+ * 走 lexer 而非正则扫全文：围栏代码块里的 `[文字](地址)` 不是链接，
+ * 正则分不清而 lexer 分得清——本项目的文章里正好有展示 markdown 写法的代码块。
+ * 裸 HTML 的 <a> 也要查，markdown 允许内嵌 HTML；这里引号要兼容单双引号，
+ * 因为没有 juice 那一步归一化。
+ */
+function assertOnlyWechatLinksInMarkdown(markdown) {
+  const offenders = [];
+  const lexer = new Marked({
+    walkTokens: (token) => {
+      if (token.type === 'link' && !WECHAT_URL_PATTERN.test(token.href ?? '')) {
+        offenders.push(token.href ?? '');
+      }
+      if (token.type === 'html') {
+        for (const match of (token.raw ?? '').matchAll(/<a\s[^>]*?href\s*=\s*["']([^"']*)["']/gi)) {
+          if (!WECHAT_URL_PATTERN.test(match[1])) offenders.push(match[1]);
+        }
+      }
+    },
+  });
+  lexer.parse(markdown);
+  if (offenders.length > 0) {
+    throw new BadOutputError(offenders);
+  }
+}
+
+/**
  * 用户侧条件：要改的是文章或配置，不是代码。CLI 只打 message，不打堆栈——
  * 堆栈会让人以为工具坏了，而不是文件该改一下。
  *
@@ -194,7 +225,7 @@ export function renderArticle(id, { config, stylesheet, readPost = readPostFromD
     throw new FrontmatterDriftError(id, raw.includes('\r\n'));
   }
 
-  const { renderer, footnotes, missing, internalLinks } = createLinkRewriter({
+  const deps = {
     blogBase: config.blogBase,
     collectionUrl: config.collectionUrl,
     lookupPost: (targetId) => {
@@ -203,20 +234,33 @@ export function renderArticle(id, { config, stylesheet, readPost = readPostFromD
         ? { exists: false, url: null }
         : { exists: true, url: readWechatUrl(target) };
     },
-  });
+  };
 
-  const body = new Marked({ renderer }).parse(meta.content);
-
-  if (missing.length > 0) {
-    throw new MissingLinkError(id, missing);
+  // 两条通道各建一个实例：收集器是实例内的，共用一个会把 footnotes 收两遍。
+  // 分流规则仍只有 links.mjs 的 classify 一份。
+  const htmlRewriter = createLinkRewriter(deps);
+  const body = new Marked({ renderer: htmlRewriter.renderer }).parse(meta.content);
+  if (htmlRewriter.missing.length > 0) {
+    throw new MissingLinkError(id, htmlRewriter.missing);
   }
+
+  const mdRewriter = createLinkRewriter(deps);
+  const mdBody = mdRewriter.rewriteMarkdown(meta.content);
+  // 两条通道的 missing 理应一致；不一致就说明规则没真正共用，让它当场暴露而不是产出半成品
+  if (mdRewriter.missing.length > 0) {
+    throw new MissingLinkError(id, mdRewriter.missing);
+  }
+
+  const { footnotes, internalLinks } = htmlRewriter;
 
   const article = `<div class="prose">\n${body}${renderFootnotes(footnotes)}</div>`;
   const inlined = juice.inlineContent(article, stylesheet.css);
-
   assertOnlyWechatLinks(inlined);
 
-  return { meta, html: inlined, footnotes, internalLinks };
+  const markdown = `${mdBody}${renderFootnotesMarkdown(footnotes)}`;
+  assertOnlyWechatLinksInMarkdown(markdown);
+
+  return { meta, html: inlined, markdown, footnotes, internalLinks };
 }
 
 /**
@@ -230,6 +274,18 @@ function renderFootnotes(footnotes) {
     .map(({ text, href }) => `<li>${text ? `${escapeHtml(text)}：` : ''}${escapeHtml(href)}</li>`)
     .join('\n');
   return `\n<h2>文中链接</h2>\n<ul>\n${items}\n</ul>\n`;
+}
+
+/**
+ * 同一份文末清单的 markdown 形态，供导入通道使用。
+ *
+ * 地址用反引号锁成行内代码：裸露的地址会被 GFM 的 autolink 变回链接，
+ * 导入公众号后就成了一个点不动的可点样式——文末清单存在的意义恰恰是「这个点不动，请复制」。
+ */
+function renderFootnotesMarkdown(footnotes) {
+  if (footnotes.length === 0) return '';
+  const items = footnotes.map(({ text, href }) => `- ${text ? `${text}：` : ''}\`${href}\``).join('\n');
+  return `\n\n## 文中链接\n\n${items}\n`;
 }
 
 /**
@@ -376,13 +432,18 @@ export class MissingLinkError extends UserFacingError {
 //
 // 公众号后台有几个格子不在正文里，漏填在发布后无法补救（「阅读原文」尤其是永久锁死的）。
 // ─────────────────────────────────────────────────────────────
-function printChecklist({ meta, id, config, outPath, footnotes, internalLinks }) {
+function printChecklist({ meta, id, config, mdPath, htmlPath, footnotes, internalLinks }) {
   const excerpt = meta.excerpt ?? '';
 
   console.log('');
   console.log('─'.repeat(64));
-  console.log(`产物  ${outPath}`);
-  console.log('      浏览器打开 → 全选(Ctrl+A) → 复制 → 粘进公众号编辑器');
+  console.log('两种产物，选一种用（第一次两种都试一遍，把哪种好看写进 guides/WECHAT_SYNC.md）：');
+  console.log('');
+  console.log(`  导入  ${mdPath}`);
+  console.log('        后台正文区「文档导入」→ 拖进去。排版走公众号默认样式');
+  console.log('');
+  console.log(`  粘贴  ${htmlPath}`);
+  console.log('        浏览器打开 → 全选(Ctrl+A) → 复制 → 粘进编辑器。排版与博客一致');
   console.log('─'.repeat(64));
   console.log('');
   console.log('后台要填的格子：');
@@ -397,7 +458,7 @@ function printChecklist({ meta, id, config, outPath, footnotes, internalLinks })
 
   if (internalLinks.length > 0) {
     console.log('');
-    console.log(`粘贴后核对这 ${internalLinks.length} 处链接还在不在（粘贴环节是否保留 <a> 尚未在真账号验证）：`);
+    console.log(`导入或粘贴之后，核对这 ${internalLinks.length} 处链接还在不在（两条通道都还没在真账号上验证过）：`);
     for (const { text, href } of internalLinks) {
       console.log(`  · 「${text}」→ ${href}`);
     }
@@ -434,18 +495,21 @@ function main() {
   const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
   const stylesheet = buildStylesheet(INDEX_CSS);
 
-  const { meta, html, footnotes, internalLinks } = renderArticle(id, { config, stylesheet });
+  const { meta, html, markdown, footnotes, internalLinks } = renderArticle(id, { config, stylesheet });
 
   mkdirSync(OUT_DIR, { recursive: true });
-  const outPath = join(OUT_DIR, `${id}.html`);
-  writeFileSync(outPath, wrapPage(meta.title ?? id, html), 'utf8');
+  const htmlPath = join(OUT_DIR, `${id}.html`);
+  const mdPath = join(OUT_DIR, `${id}.md`);
+  writeFileSync(htmlPath, wrapPage(meta.title ?? id, html), 'utf8');
+  writeFileSync(mdPath, markdown, 'utf8');
 
   console.log(`样式基线：从 index.css 取 ${stylesheet.baseRuleCount} 条 .prose 规则` +
     (stylesheet.droppedSelectors.length > 0
       ? `，丢弃 ${stylesheet.droppedSelectors.join('、')}`
-      : ''));
+      : '') +
+    '（只作用于 .html 那份；.md 走公众号默认排版）');
 
-  printChecklist({ meta, id, config, outPath, footnotes, internalLinks });
+  printChecklist({ meta, id, config, mdPath, htmlPath, footnotes, internalLinks });
 }
 
 // 仅在被直接执行时跑 CLI；被 import 时（测试）只取导出的函数

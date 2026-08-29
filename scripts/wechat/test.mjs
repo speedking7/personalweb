@@ -366,6 +366,56 @@ await check('两份 frontmatter 正则漂移时中断，不让元数据印进正
   has(error.message, 'CRLF', '指出最可能的原因');
 });
 
+console.log('\nMarkdown 通道（公众号后台的「文档导入」）');
+
+await check('互指在 md 里仍是 markdown 链接，地址已换成公众号的', async () => {
+  const { markdown } = pipeline(`看[第一篇](${BASE}/#/blog/published)`);
+  has(markdown, `[第一篇](${PUBLISHED_URL})`, '改写结果');
+  hasNot(markdown, 'blog.yingtongxue.cn', '博客地址残留');
+});
+
+await check('外链在 md 里剥成纯文字，不留 markdown 链接语法', async () => {
+  const { markdown } = pipeline('出处在 [某个站点](https://example.com/page)');
+  has(markdown, '出处在 某个站点', '剥后的文字');
+  hasNot(markdown, '](https://example.com', '残留的链接语法');
+});
+
+// 剥掉语法后地址若裸露，GFM 的 autolink 会把它变回链接，
+// 导入公众号就成了一个点不动的可点样式——与剥它的初衷相反。
+await check('剥出来的裸地址被反引号锁住，不会被 autolink 变回链接', async () => {
+  const { markdown } = pipeline('见 [https://example.com/x](https://example.com/x)');
+  has(markdown, '`https://example.com/x`', '锁住的地址');
+});
+
+await check('文末清单的地址同样锁住', async () => {
+  const { markdown } = pipeline('见 [某站](https://example.com/page)');
+  has(markdown, '- 某站：`https://example.com/page`', '清单条目');
+});
+
+// 本项目的文章里就有展示 markdown 写法的代码块，正则扫全文会误伤，lexer 不会。
+await check('围栏代码块里的链接语法不被改写', async () => {
+  const { markdown } = pipeline('```\n看[第一篇](https://blog.yingtongxue.cn/#/blog/published)\n```');
+  has(markdown, 'blog.yingtongxue.cn/#/blog/published', '代码块原样保留');
+});
+
+await check('md 产物同样有出厂不变量，裸 HTML 的 a 标签拦得住', async () => {
+  throws(
+    () => pipeline("见 <a href='https://example.com/x'>某站</a> 一文。"),
+    'mp.weixin.qq.com',
+    'md 出厂不变量'
+  );
+});
+
+await check('两条通道的分流结论一致（规则确实只有一份）', async () => {
+  const { html, markdown } = pipeline(
+    `看[第一篇](${BASE}/#/blog/published)，另见 [某站](https://example.com/p)`
+  );
+  has(html, PUBLISHED_URL, 'html 里的互指');
+  has(markdown, PUBLISHED_URL, 'md 里的互指');
+  has(html, '文中链接', 'html 的文末清单');
+  has(markdown, '文中链接', 'md 的文末清单');
+});
+
 console.log('\n错误分类（用户侧条件不该呈现成崩溃）');
 
 // 这条测的是机制而非某一次行为：CLI 靠 instanceof UserFacingError 决定打不打堆栈，
