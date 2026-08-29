@@ -6,6 +6,7 @@ cover: covers/wishing-well.jpg
 date: 2026-08-28
 readTime: 8
 excerpt: 很多人有了想法，第一反应还是去找个懂技术的人，让他「用 AI 帮我实现」。这条路你走了三十年，一直是对的。这一次它不对了——而且不对的地方，跟技术没关系。
+wechat: https://mp.weixin.qq.com/s/54HrEWd9to6OkYtJ3FwwGQ
 ---
 
 [第三篇](https://blog.yingtongxue.cn/#/blog/2026-08-27-context-for-everyone)发出去之后，来问的人比前两篇加起来还多。
