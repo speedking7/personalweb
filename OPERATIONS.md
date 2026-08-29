@@ -59,6 +59,12 @@ KV namespace id `17e044a9f85c498fa0140efda9636d42`，`STATS_TOKEN` 在 Worker se
 OPTIONS 预检 204、CORS 头精确回显单一来源而非 `*`、连续三次上报均 204（KV 运行时可写）。
 KV 里有一条 `1970-01-01-smoke-test` 是当时的连通性测试残留，可随时删除。
 
+**换机或重启后要重新部署时**：`CLOUDFLARE_API_TOKEN` 只在当时的终端里 `export` 过，
+没有写进任何配置文件，因此不会自动恢复。到
+`https://dash.cloudflare.com/profile/api-tokens` 重新建一个自定义 Token 即可，
+权限两条：Account → Workers Scripts → Edit，Account → Workers KV Storage → Edit。
+不要用 `wrangler login` 的 OAuth 流程——实测在本机代理环境下会卡住不弹浏览器。
+
 重新部署（改了 Worker 代码之后）：
 
 ```bash
