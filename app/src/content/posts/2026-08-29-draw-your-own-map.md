@@ -6,6 +6,7 @@ cover: covers/draw-your-own-map.jpg
 date: 2026-08-29
 readTime: 10
 excerpt: 它给你的东西，看着都对，可你不知道到底对不对。这不怪它——它在你懂的地方和不懂的地方，语气从来是一样的。而分辨这一件事，工具帮不上忙。
+wechat: https://mp.weixin.qq.com/s/XpVQY18L9YbzmOD5DwDmzw
 ---
 
 [上一篇](https://blog.yingtongxue.cn/#/blog/2026-08-28-ai-is-not-a-wishing-well)发出去之后，真有人去试了。
