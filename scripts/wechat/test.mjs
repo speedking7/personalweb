@@ -282,10 +282,21 @@ await check('图片的报错文案说清了该怎么办，且不带 marked 的�
 
 console.log('\n真管线：juice 内联 + 出厂不变量');
 
-await check('正文字号被手机覆盖层压过基线，内联到了标签上', async () => {
+// 这几个值取自微信自带格式模板的实测（2026-08 用 draft/get 拉回成品量的），
+// 不是估的。断言它们是为了防止哪天有人"顺手调调"就把实测结论改回猜测。
+await check('正文用的是模板实测值 17px/2.0/24px，且已内联到标签上', async () => {
   const { html } = pipeline('一段正文。');
-  has(html, 'font-size: 16px', '正文字号');
+  has(html, 'font-size: 17px', '正文字号');
+  has(html, 'line-height: 2.0', '行高');
+  has(html, 'margin-bottom: 24px', '段距');
   hasNot(html, '<p>', '不该有未内联的裸 p');
+});
+
+await check('章节标题取博客的 #A65D1E 而非模板的 #EA7800', async () => {
+  const { html } = pipeline('## 一个章节\n\n正文。');
+  has(html, '#A65D1E', '标题颜色');
+  hasNot(html, '#EA7800', '模板原色不该出现');
+  has(html, 'text-align: center', '标题居中');
 });
 
 await check('代码块内联了深色底与手机字号', async () => {
