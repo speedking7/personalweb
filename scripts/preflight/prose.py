@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 """
-[INPUT]: 依赖标准库 re/sys/pathlib；读 app/src/content/posts/*.md 与 app/public/covers/*
-[OUTPUT]: 对外提供命令行入口，以及 analyze() / gates() 供 cover.py 之外的调用方复用
+[INPUT]: 依赖标准库 re/sys/pathlib/unicodedata；读 app/src/content/posts/*.md 与 app/public/covers/*
+[OUTPUT]: 对外提供命令行入口，以及 analyze() / gates() / track_of() 供调用方复用
 [POS]: scripts/preflight 的文章验收器，与 cover.py 分管「文字」与「图」两侧；
-       闸门规则来自 BLOG_PLAYBOOK.md 第六节的两个雷，指标来自 WRITING_STYLE.md 第三节
+       闸门规则来自 BLOG_PLAYBOOK.md 第六节的两个雷，指标与目标值来自 WRITING_STYLE.md 第三节与第十二节
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+
+口径：字数类指标**只数字母/数字/汉字，不数标点**，与 WRITING_STYLE.md 同尺。
+2026-08 之前这里数标点而目标值不数，两把尺子对同一张表，长度类虚高 13%、
+极短段虚低 24%——照着自检会以为「还不够碎」而继续加短段，第 4、5 篇就是这么写碎的。
+
+轨别：指标区间按 frontmatter 的 category 分组比对，入门篇只跟入门篇比。
+不分组的话，第一篇实作篇（带代码块与数据表）会把区间整片拉宽，
+从此每篇都「在区间内」，横向比失效。闸门与轨别无关，照常拦。
 """
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,14 +26,22 @@ PUBLIC = ROOT / "app/public"
 # parseBlogMetadata 的硬编码字段白名单；wechat 是发布侧元数据，故意不进前端契约
 WHITELIST = {"title", "category", "tags", "date", "cover", "readTime", "excerpt", "wechat"}
 
-# WRITING_STYLE.md 第三节的节奏参数
+# 目标值按轨别分。段落与句子两项是作者的指纹，两轨相同（同年对照实测：
+# 段落均长 25.8 对 25.8、句子均长差 6%）；问句与人称随篇幅涨，短文该对低档。
+# 见 WRITING_STYLE.md 第十二节。
 TARGETS = {
-    "段落均长": 25.0,
-    "句子均长": 23.0,
-    "极短段占比": 25.0,
-    "「你」每千字": 22.0,
-    "问句每千字": 10.0,
+    "入门": {"段落均长": 25.0, "句子均长": 23.0, "「你」每千字": 20.5, "问句每千字": 8.0},
+    "实作": {"段落均长": 25.0, "句子均长": 23.0, "「你」每千字": 22.0, "问句每千字": 10.0},
 }
+DEFAULT_TRACK = "入门"
+
+# 只报数、不设目标的指标。极短段占比是高方差量：同一批语料换取样窗口
+# 量四次得到 8%/21%/38%/6%，差值大于它想测的效应，设目标只会诱导硬凑。
+REPORT_ONLY = ["极短段占比"]
+
+# 去标点口径下的阅读速度，由已发篇目的 readTime 反推（旧值 459 是含标点口径，
+# 且与当时的实际篇目也对不上）。口径一改这个常数必须跟着改，否则静默漂移。
+CHARS_PER_MIN = 347
 
 
 def split_frontmatter(text):
@@ -52,23 +69,39 @@ def paragraphs(body):
     return out
 
 
+def words(text):
+    """只留字母/数字/汉字。字数类指标的唯一口径，与 WRITING_STYLE.md 同尺。"""
+    return "".join(c for c in text if unicodedata.category(c)[0] in ("L", "N"))
+
+
+def track_of(fm):
+    """从 frontmatter 取轨别。认不出的一律归主轨，宁可跟入门篇比也不要无历史可比。"""
+    m = re.search(r"category:\s*[\"\']?([^\"\'\n]+)[\"\']?", fm or "")
+    t = m.group(1).strip() if m else ""
+    return t if t in TARGETS else DEFAULT_TRACK
+
+
 def analyze(body):
     paras = paragraphs(body)
     if not paras:
         return None
-    lens = [len(re.sub(r"\s", "", p)) for p in paras]
+    lens = [len(words(p)) for p in paras]
     total = sum(lens)
+    if not total:
+        return None
     flat = re.sub(r"\s", "", "".join(paras))
     sents = [s for s in re.split(r"(?<=[。！？])", flat) if s.strip()]
+    tail_sents = [s for s in re.split(r"(?<=[。！？])", paras[-1]) if s.strip()]
     return {
         "总字数": total,
         "段落数": len(paras),
         "段落均长": total / len(paras),
-        "句子均长": sum(len(s) for s in sents) / len(sents),
+        "句子均长": sum(len(words(s)) for s in sents) / len(sents),
         "极短段占比": sum(1 for n in lens if n <= 15) / len(paras) * 100,
         "「你」每千字": flat.count("你") / total * 1000,
         "问句每千字": sum(1 for s in sents if s.endswith("？")) / total * 1000,
         "_尾段": lens[-1],
+        "_尾段句数": len(tail_sents),
     }
 
 
@@ -125,13 +158,16 @@ def gates(path, fm, body, stats):
     return res
 
 
-def history(exclude):
-    """已发篇目的指标区间。只有横向比，才分得清是失手还是固有偏移。"""
+def history(exclude, track):
+    """同轨已发篇目的指标区间。只有横向比，才分得清是失手还是固有偏移；
+    而只有同轨比才有意义——实作篇带代码与数据表，混进来会把区间拉宽到失效。"""
     rows = []
     for f in sorted(POSTS.glob("*.md")):
         if f.resolve() == exclude.resolve():
             continue
-        _, body = split_frontmatter(f.read_text(encoding="utf-8"))
+        fm, body = split_frontmatter(f.read_text(encoding="utf-8"))
+        if track_of(fm) != track:
+            continue
         s = analyze(body)
         if s:
             rows.append(s)
@@ -149,34 +185,44 @@ def check(path):
         print(f"✗ {path.name}：正文为空")
         return False
 
-    print(f"\n{'=' * 62}\n{path.name}\n{'=' * 62}")
-    print(f"{stats['总字数']} 字 / {stats['段落数']} 段 / "
-          f"建议 readTime {round(stats['总字数'] / 459)}（按已发篇目 459 字每分钟）")
+    track = track_of(fm)
+    print(f"\n{'=' * 62}\n{path.name}   [{track}轨]\n{'=' * 62}")
+    print(f"{stats['总字数']} 字（不数标点）/ {stats['段落数']} 段 / "
+          f"建议 readTime {max(1, round(stats['总字数'] / CHARS_PER_MIN))}"
+          f"（{CHARS_PER_MIN} 字每分钟）")
 
-    rows = history(path)
+    rows = history(path, track)
     print("\n闸门（拦的是静默失败：页面照常显示，功能已经死了）")
     results = gates(path, fm, body, stats)
     for ok, name, detail in results:
         print(f"  {'✓' if ok else '✗'} {name:<22}{detail}")
     passed = sum(1 for ok, _, _ in results if ok)
 
-    print(f"\n指标（只报数，不拦；括号内是已发 {len(rows)} 篇的区间）")
-    for k, target in TARGETS.items():
-        v = stats[k]
-        unit = "%" if "占比" in k else ""
-        if rows:
-            lo = min(r[k] for r in rows)
-            hi = max(r[k] for r in rows)
-            band = f"已发 {lo:.1f}~{hi:.1f}"
-            flag = "" if lo <= v <= hi else "  ← 跳出历史区间"
-        else:
-            band, flag = "无历史可比", ""
-        gap = "" if abs(v - target) / target < 0.15 else ("↓" if v < target else "↑")
-        print(f"  {k:<14}{v:>6.1f}{unit}{gap:<2} 目标 {target:<6}{band}{flag}")
+    same = f"已发同轨 {len(rows)} 篇" if rows else "同轨暂无历史可比"
+    print(f"\n指标（只报数，不拦；口径不数标点；区间取自{same}）")
 
-    tail_len, avg = stats["_尾段"], stats["段落均长"]
-    note = "" if tail_len < avg else "  ← 不短于均长；若文末是附录代码块，看的是引导语不是真结尾"
-    print(f"  {'结尾段长':<14}{tail_len:>6}  {'':<2} 目标 <{avg:.0f}   结尾四式要求最后一段比正文更短{note}")
+    def band_of(k, v):
+        if not rows:
+            return "无历史可比", ""
+        lo = min(r[k] for r in rows)
+        hi = max(r[k] for r in rows)
+        return f"已发 {lo:.1f}~{hi:.1f}", ("" if lo <= v <= hi else "  ← 跳出历史区间")
+
+    for k, target in TARGETS[track].items():
+        v = stats[k]
+        band, flag = band_of(k, v)
+        gap = "" if abs(v - target) / target < 0.15 else ("↓" if v < target else "↑")
+        print(f"  {k:<14}{v:>6.1f}{gap:<2} 目标 {target:<6}{band}{flag}")
+
+    for k in REPORT_ONLY:
+        v = stats[k]
+        band, flag = band_of(k, v)
+        print(f"  {k:<14}{v:>6.1f}%  不设目标（高方差）  {band}{flag}")
+
+    n = stats["_尾段句数"]
+    note = "" if n == 1 else "  ← 末段不止一句；若文末是附录代码块，看的是引导语不是真结尾"
+    print(f"  {'结尾段句数':<14}{n:>6}   目标 1      结尾诸式的共同点是末段恒为一句"
+          f"（不是「比正文短」，那条已被实测推翻，见 WRITING_STYLE 第八节）{note}")
 
     ok_all = passed == len(results)
     print(f"\n闸门 {passed}/{len(results)} {'✓ 通过' if ok_all else '✗ 未通过'}")
