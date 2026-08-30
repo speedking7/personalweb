@@ -1,6 +1,6 @@
 ---
 title: AI 不是许愿池，是游泳池
-category: 技术
+category: 入门
 tags: [AI, 认知, 入门]
 cover: covers/wishing-well.jpg
 date: 2026-08-28

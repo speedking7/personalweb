@@ -1,6 +1,6 @@
 ---
 title: 你不用什么都会，但得知道自己哪儿不会
-category: 技术
+category: 入门
 tags: [AI, 认知, 职场]
 cover: covers/draw-your-own-map.jpg
 date: 2026-08-29

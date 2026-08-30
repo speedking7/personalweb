@@ -1,6 +1,6 @@
 ---
 title: 你背的那些咒语，下个版本就失效了
-category: 技术
+category: 入门
 tags: [AI, 提示词工程]
 cover: covers/prompt-engineering.jpg
 date: 2026-08-26

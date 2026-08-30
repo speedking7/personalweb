@@ -1,6 +1,6 @@
 ---
 title: AI 写得越快，项目烂得越快
-category: 技术
+category: 入门
 tags: [AI, 提示词工程, 工程实践]
 cover: covers/geb-claude-md.jpg
 date: 2026-08-26

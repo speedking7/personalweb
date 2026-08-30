@@ -1,6 +1,6 @@
 ---
 title: 同一个 AI，为什么在你手里就变笨了
-category: 技术
+category: 入门
 tags: [AI, 上下文工程, 入门]
 cover: covers/context-engineering.jpg
 date: 2026-08-27
