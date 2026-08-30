@@ -51,3 +51,4 @@ drafts/
 # 纯中间物，由 scripts/wechat/build.mjs 随时重建，与 docs/ 同理：
 # 能被重建的东西入库只会制造「产物与源码不同步」的假象
 scripts/wechat/out/
+.gstack/
