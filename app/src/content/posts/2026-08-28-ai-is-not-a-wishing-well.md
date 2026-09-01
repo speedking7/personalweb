@@ -97,7 +97,7 @@ wechat: https://mp.weixin.qq.com/s/54HrEWd9to6OkYtJ3FwwGQ
 
 而他理解的那个版本，和你要的那个，中间隔着你讲的那五分钟。
 
-这就回到[上一篇](https://blog.yingtongxue.cn/#/blog/2026-08-27-context-for-everyone)讲的那件事了：**你说给他听的，是概括。**你脑子里有边界，落到嘴上就没了。他按概括去试，试出来的结论，也是给概括用的。
+这就回到[上一篇](https://blog.yingtongxue.cn/#/blog/2026-08-27-context-for-everyone)讲的那件事了：**你说给他听的，是概括**。你脑子里有边界，落到嘴上就没了。他按概括去试，试出来的结论，也是给概括用的。
 
 你把最该你干的那部分外包了出去，然后拿回来一个针对概括的答案。
 

@@ -152,6 +152,29 @@ def gates(path, fm, body, stats):
     add(not dead, "站内链接非死链",
         "全部指向存在的文章" if not dead else "；".join(dead) + " → 核对文章 id")
 
+    # 加粗被中文标点吃掉。写成 **文字。**紧跟汉字 时，闭合的 ** 前面是标点、
+    # 后面既不是空白也不是标点，不满足 CommonMark 的 right-flanking，于是它不被
+    # 当成闭合符，整段退化成纯文本，星号原样印在页面上。
+    # 这条属于闸门而非指标：页面照常渲染、不报错、构建不失败，只有肉眼盯着才看得出来。
+    # 2026-08-31 实测全站中招 6 处，其中两处已经在线上挂了好几天。
+    # 判据照 CommonMark 原文，不要用正则找 **...**——那会把 **MCP**。 这种
+    # 正常配对的闭合星号当成开启星号，报出误判。
+    broken = []
+    for ln, line in enumerate(strip_code(body).split("\n"), 1):
+        marks = [m.start() for m in re.finditer(r"\*\*", line)]
+        for k in range(1, len(marks), 2):          # 按序配对，奇数下标是闭合位
+            i = marks[k]
+            prev = line[i - 1] if i > 0 else ""
+            nxt = line[i + 2] if i + 2 < len(line) else ""
+            if (prev and unicodedata.category(prev).startswith("P")
+                    and nxt and not nxt.isspace()
+                    and not unicodedata.category(nxt).startswith("P")):
+                broken.append(f"L{ln}「{line[max(0, i - 10):i + 4]}」")
+    add(not broken, "加粗没被标点吃掉",
+        "全部正常闭合" if not broken
+        else "；".join(broken[:3]) + " → 把标点挪到 ** 外面（**文字**。 而不是 **文字。**）。"
+             "页面照常显示，只是把星号原样印出来")
+
     # 「结尾段短于正文均长」刻意不在这里。它是看得见、随时能改的风格问题，
     # 不是静默失败；而且带附录的文章（正文后跟大段代码块）会被误判——
     # 第二篇的真结尾是 22 字冷短句，脚本看到的却是附录引导语。放指标区报数。
