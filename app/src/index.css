@@ -210,3 +210,18 @@
   margin-bottom: 1rem;
   color: #6b6b6b;
 }
+
+/* 正文插图。
+   路径规则与封面不同，别混：封面在 frontmatter 里写相对路径 covers/x.jpg，
+   由 data/blogs.ts 的 resolveCover 补部署前缀；正文图片没有那一层，
+   markdown 里的地址是浏览器直接解析的，HashRouter 深链下相对路径会指到错的目录，
+   所以正文图必须写成 /images/x.jpg 这样的根路径。
+   改这里等于同时改公众号版——styles.mjs 的样式基线就是从这份 .prose 抽的。 */
+.prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 2rem auto;
+  border: 1px solid #ece5da;
+  border-radius: 3px;
+}
