@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * [INPUT]: 依赖 build.mjs 的 renderArticle 产出内联样式的正文 HTML 与元数据，
+ * [INPUT]: 依赖 build.mjs 的 renderArticle 产出内联样式的正文 HTML 与元数据、
+ *          prepareBodyImages 把正文图片送进素材库，
  *          依赖 api.mjs 与微信通信，依赖 config.json 的 blogBase 拼「阅读原文」
  * [OUTPUT]: 命令行入口。把一篇文章送进公众号草稿箱，人工在后台点「发表」
  * [POS]: scripts/wechat 的发布侧入口，与 build.mjs（产文件）并列。
@@ -11,7 +12,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { renderArticle, readWechatUrl, UserFacingError } from './build.mjs';
+import { renderArticle, readWechatUrl, prepareBodyImages, UserFacingError } from './build.mjs';
 import { buildStylesheet } from './styles.mjs';
 import {
   loadCredentials, getAccessToken, uploadPermanentImage, deleteMaterial, postJson,
@@ -152,14 +153,21 @@ async function main() {
   const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
   const stylesheet = buildStylesheet(INDEX_CSS);
 
-  // 链接改写与出厂不变量都在这一步跑完；有坏链接会在联网之前就中断
-  const { meta, html, internalLinks } = renderArticle(id, { config, stylesheet });
+  // 正文图片得先进素材库才渲染得出可用的地址，所以有图时这一步排在渲染之前。
+  // 没有图则一个请求都不发，仍是「先在本地把该拦的拦完，再联网」。
+  // 图片不随草稿失败回滚（封面会）：它按内容 hash 缓存，重试会命中同一份，
+  // 不会像封面那样每失败一次就在素材库多堆一张。
+  const prepared = await prepareBodyImages(readPost(id) ?? '');
+
+  // 链接改写与出厂不变量都在这一步跑完；有坏链接会在送稿之前就中断
+  const { meta, html, internalLinks } = renderArticle(id, {
+    config, stylesheet, resolveImage: prepared.resolveImage,
+  });
   // --update 下不查 wechat 字段：那条检查防的是「已发过还重复送稿」，
   // 而 update 是明确要改草稿箱里那一篇，两回事
   precheck(id, meta, html, force || update, config);
 
-  const credentials = loadCredentials();
-  const accessToken = await getAccessToken(credentials);
+  const accessToken = prepared.accessToken ?? await getAccessToken(loadCredentials());
   console.log('已取得 access_token');
 
   const article = {

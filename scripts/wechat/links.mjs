@@ -1,18 +1,33 @@
 /**
- * [INPUT]: 依赖调用方注入 blogBase、合集地址、以及「文章 id → 发布状态」的查询函数；
+ * [INPUT]: 依赖调用方注入 blogBase、合集地址、「文章 id → 发布状态」的查询函数，
+ *          以及可选的「图片地址 → 素材库地址」解析函数（不注入即没有图片能力，本文件不联网）；
  *          依赖 marked 把链接文字的行内 markdown 解析成纯文本
  * [OUTPUT]: 对外提供 createLinkRewriter（同时给出 HTML renderer 与 markdown 改写器）、
- *          WECHAT_URL_PATTERN、escapeHtml、escapeAttr
- * [POS]: scripts/wechat 的业务核心。微信正文只认 mp.weixin.qq.com 域名的链接，
- *        其余外链地址会被丢弃、点击无反应，因此所有链接必须在渲染期分流。
- *        分流的**决策**只有 classify 一处，HTML 与 markdown 两种输出共用它——
- *        公众号后台既能粘贴 HTML 也能导入 markdown，两条通道的链接规则必须是同一份
+ *          WECHAT_URL_PATTERN、WECHAT_IMAGE_PATTERN、escapeHtml、escapeAttr
+ * [POS]: scripts/wechat 的业务核心。微信正文只认 mp.weixin.qq.com 域名的链接、
+ *        只认 mmbiz.qpic.cn 域名的图片，其余地址会被丢弃或被防盗链打成红叉，
+ *        因此链接与图片都必须在渲染期分流。
+ *        分流的**决策**各只有一处（链接 classify、图片 classifyImage），
+ *        HTML 与 markdown 两种输出共用它们——公众号后台既能粘贴 HTML 也能导入 markdown，
+ *        两条通道的规则必须是同一份
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { Marked } from 'marked';
 
 /** 公众号内可点击的链接，只有这一种形态 */
 export const WECHAT_URL_PATTERN = /^https:\/\/mp\.weixin\.qq\.com\//;
+
+/**
+ * 公众号正文里显示得出来的图片，只有素材库回给的这一种域名。
+ * 别的域名会被防盗链打成红叉，且发布后正文不可修改。
+ *
+ * 与 WECHAT_URL_PATTERN 分开两份、不复用：那一份管的是文章链接（mp.weixin.qq.com），
+ * 图片是另一个域名，混用会让其中一类静默失守。
+ * 协议放宽到 http：`add_material` 返回的 url 就是 http:// 开头的，
+ * 收紧成 https 等于让自己的不变量拦下微信刚给我们的正确地址——
+ * 而那会在最后一步、送稿时才炸。
+ */
+export const WECHAT_IMAGE_PATTERN = /^https?:\/\/mmbiz\.qpic\.cn\//;
 
 /**
  * 博客文章与列表页的路由形状。
@@ -61,8 +76,12 @@ export function escapeAttr(value) {
  * @param {(id: string) => { exists: boolean, url: string | null }} opts.lookupPost
  *        查文章的发布状态。exists 区分「posts/ 里没这篇」与「有这篇但还没发公众号」，
  *        两者的处置完全不同：前者多半是 id 写错了，后者是发布顺序没到
+ * @param {((src: string) => { url: string } | null)?} opts.resolveImage
+ *        正文图片地址 → 素材库地址。**不传就等于没有图片能力**：图片一律记进 missing，
+ *        与本文件其余部分一样不降级。默认不传是刻意的——它是唯一需要联网的注入点，
+ *        而链接分流本身是纯离线的
  */
-export function createLinkRewriter({ blogBase, collectionUrl, lookupPost }) {
+export function createLinkRewriter({ blogBase, collectionUrl, lookupPost, resolveImage = null }) {
   const footnotes = [];
   const missing = [];
   const internalLinks = [];
@@ -152,6 +171,27 @@ export function createLinkRewriter({ blogBase, collectionUrl, lookupPost }) {
     return { action: 'plain' };
   }
 
+  /**
+   * 图片分流决策。**唯一的一份规则**，与 classify 同构，HTML 与 markdown 两条通道都走它。
+   *
+   * 只回答一个问题：这张图有没有拿到公众号用得了的地址。
+   * **不校验域名对不对**——那是出厂不变量的活，两道分工与链接那边一致：
+   * 分类给诊断（哪张图没传上），不变量兜底（传回来的地址是不是真能显示）。
+   *
+   * 拿不到地址时记进 missing 而非 throw，理由同 image renderer：
+   * 它是用户侧条件，抛出去会穿过 marked 被包上一句「请向 markedjs 提 issue」。
+   *
+   * @returns {{action: 'image', url: string} | {action: 'reject'}}
+   */
+  function classifyImage(src, alt) {
+    const resolved = resolveImage ? resolveImage(src) : null;
+    if (!resolved?.url) {
+      missing.push({ kind: 'bodyImage', url: src, text: alt });
+      return { action: 'reject' };
+    }
+    return { action: 'image', url: resolved.url };
+  }
+
   const renderer = {
     link(token) {
       const inner = this.parser.parseInline(token.tokens);
@@ -166,12 +206,13 @@ export function createLinkRewriter({ blogBase, collectionUrl, lookupPost }) {
         : inner;
     },
 
-    // 正文图片走 missing 而非 throw：它是一个用户侧条件（文章里放了图），
-    // 不是程序异常。抛异常会穿过 marked，被它包上一句「请向 markedjs 提 issue」，
-    // 把一次正常的「这篇得改稿」呈现成崩溃。
+    // 没拿到素材库地址的图片一律不出厂（返回空串），不留空 img、不放占位图：
+    // 静默降级会让「图挂了」与「一切正常」在成品上无从分辨，
+    // 而公众号发布后正文不可修改，红叉是补不回来的。
     image(token) {
-      missing.push({ kind: 'bodyImage', url: token.href ?? '', text: token.text ?? '' });
-      return '';
+      const decision = classifyImage(token.href ?? '', token.text ?? '');
+      if (decision.action !== 'image') return '';
+      return `<img src="${escapeAttr(decision.url)}" alt="${escapeAttr(token.text ?? '')}">`;
     },
   };
 
@@ -199,7 +240,8 @@ export function createLinkRewriter({ blogBase, collectionUrl, lookupPost }) {
       rest = rest.slice(at + token.raw.length);
 
       if (token.type === 'image') {
-        missing.push({ kind: 'bodyImage', url: token.href ?? '', text: token.text ?? '' });
+        const decision = classifyImage(token.href ?? '', token.text ?? '');
+        if (decision.action === 'image') out += `![${token.text ?? ''}](${decision.url})`;
         continue;
       }
 

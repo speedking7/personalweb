@@ -1,28 +1,34 @@
 #!/usr/bin/env node
 /**
  * [INPUT]: 依赖 app/src/lib/markdown.ts 的 parseBlogMetadata 解析标准 frontmatter，
- *          依赖同目录 links.mjs 改写链接、styles.mjs 提供样式，依赖 marked/juice 渲染与内联
- * [OUTPUT]: 对外提供 renderArticle（供测试驱动真管线）与 readWechatUrl；
- *          直接执行时为命令行入口，产出 out/{id}.html 与终端发布清单
+ *          依赖同目录 links.mjs 改写链接与图片、styles.mjs 提供样式、api.mjs 传正文图片，
+ *          依赖 marked/juice 渲染与内联
+ * [OUTPUT]: 对外提供 renderArticle（供测试驱动真管线）、readWechatUrl、
+ *          collectBodyImages 与 uploadBodyImages（draft.mjs 共用同一份上传与缓存规则）、
+ *          两道出厂不变量；直接执行时为命令行入口，产出 out/{id}.html 与终端发布清单
  * [POS]: scripts/wechat 的编排层。自身不含格式规则——frontmatter 规则在 markdown.ts，
- *        样式在 index.css，链接规则在 links.mjs；它负责把三处串起来，并在出厂前做一道不变量校验
+ *        样式在 index.css，链接与图片规则在 links.mjs；它负责把三处串起来，并在出厂前做一道不变量校验
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { Marked } from 'marked';
 import juice from 'juice';
 import { parseBlogMetadata } from '../../app/src/lib/markdown.ts';
-import { createLinkRewriter, escapeHtml, WECHAT_URL_PATTERN } from './links.mjs';
+import { createLinkRewriter, escapeHtml, WECHAT_URL_PATTERN, WECHAT_IMAGE_PATTERN } from './links.mjs';
 import { buildStylesheet } from './styles.mjs';
+import { loadCredentials, getAccessToken, uploadPermanentImage } from './api.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '../..');
 const POSTS_DIR = join(REPO_ROOT, 'app/src/content/posts');
+const PUBLIC_DIR = join(REPO_ROOT, 'app/public');
 const INDEX_CSS = join(REPO_ROOT, 'app/src/index.css');
 const OUT_DIR = join(HERE, 'out');
 const CONFIG_PATH = join(HERE, 'config.json');
+const IMAGE_CACHE_PATH = join(HERE, '.image-cache.json');
 
 // ─────────────────────────────────────────────────────────────
 // frontmatter 里的公众号链接
@@ -54,7 +60,8 @@ function listPostIds() {
 // 出厂不变量
 // ─────────────────────────────────────────────────────────────
 /**
- * 产物里每一个 <a href> 都必须指向 mp.weixin.qq.com，否则抛错。
+ * 产物里每一个 <a href> 都必须指向 mp.weixin.qq.com、
+ * 每一个 <img src> 都必须指向 mmbiz.qpic.cn，否则抛错。
  *
  * 这是「事后不变量」，与 links.mjs 的「事前分类」互补且不可互相取代。
  * 分类负责把链接分流并给出精确诊断，不变量负责保证分流真的做到了——
@@ -64,17 +71,28 @@ function listPostIds() {
  * 之所以值得多花这一道：微信正文里非公众号域名的链接点不动，
  * 而公众号发布后正文不可修改——这类错误没有补救机会，只能挡在出厂前。
  *
- * 注意这里只认双引号包裹的 href，靠的是 juice(cheerio) 在序列化时已把属性统一归一化——
+ * 图片那一道不可省，理由比链接更硬：外链图片会被微信的防盗链打成红叉，
+ * 而链接至少还只是点不动。两者都在发布后无法修改。
+ *
+ * 注意这里只认双引号包裹的 href/src，靠的是 juice(cheerio) 在序列化时已把属性统一归一化——
  * 单引号、无引号、大写 HREF 的写法进来时长什么样都无所谓，出去时都是双引号。
- * **换掉 juice 时这条正则必须一起改**，否则它会安静地失效，而失效的安全网比没有更危险。
+ * **换掉 juice 时这两条正则必须一起改**，否则它会安静地失效，而失效的安全网比没有更危险。
  */
-function assertOnlyWechatLinks(html) {
+export function assertOnlyWechatLinks(html) {
   const offenders = [];
   for (const match of html.matchAll(/<a\s[^>]*?href\s*=\s*"([^"]*)"/gi)) {
     if (!WECHAT_URL_PATTERN.test(match[1])) offenders.push(match[1]);
   }
   if (offenders.length > 0) {
     throw new BadOutputError(offenders);
+  }
+
+  const badImages = [];
+  for (const match of html.matchAll(/<img\s[^>]*?src\s*=\s*"([^"]*)"/gi)) {
+    if (!WECHAT_IMAGE_PATTERN.test(match[1])) badImages.push(match[1]);
+  }
+  if (badImages.length > 0) {
+    throw new BadImageError(badImages);
   }
 }
 
@@ -86,19 +104,26 @@ function assertOnlyWechatLinks(html) {
  *
  * 走 lexer 而非正则扫全文：围栏代码块里的 `[文字](地址)` 不是链接，
  * 正则分不清而 lexer 分得清——本项目的文章里正好有展示 markdown 写法的代码块。
- * 裸 HTML 的 <a> 也要查，markdown 允许内嵌 HTML；这里引号要兼容单双引号，
+ * 裸 HTML 的 <a> 与 <img> 也要查，markdown 允许内嵌 HTML；这里引号要兼容单双引号，
  * 因为没有 juice 那一步归一化。
  */
-function assertOnlyWechatLinksInMarkdown(markdown) {
+export function assertOnlyWechatLinksInMarkdown(markdown) {
   const offenders = [];
+  const badImages = [];
   const lexer = new Marked({
     walkTokens: (token) => {
       if (token.type === 'link' && !WECHAT_URL_PATTERN.test(token.href ?? '')) {
         offenders.push(token.href ?? '');
       }
+      if (token.type === 'image' && !WECHAT_IMAGE_PATTERN.test(token.href ?? '')) {
+        badImages.push(token.href ?? '');
+      }
       if (token.type === 'html') {
         for (const match of (token.raw ?? '').matchAll(/<a\s[^>]*?href\s*=\s*["']([^"']*)["']/gi)) {
           if (!WECHAT_URL_PATTERN.test(match[1])) offenders.push(match[1]);
+        }
+        for (const match of (token.raw ?? '').matchAll(/<img\s[^>]*?src\s*=\s*["']([^"']*)["']/gi)) {
+          if (!WECHAT_IMAGE_PATTERN.test(match[1])) badImages.push(match[1]);
         }
       }
     },
@@ -106,6 +131,9 @@ function assertOnlyWechatLinksInMarkdown(markdown) {
   lexer.parse(markdown);
   if (offenders.length > 0) {
     throw new BadOutputError(offenders);
+  }
+  if (badImages.length > 0) {
+    throw new BadImageError(badImages);
   }
 }
 
@@ -171,6 +199,41 @@ export class BadOutputError extends UserFacingError {
   }
 }
 
+/**
+ * 图片那一道的对应错误，与 BadOutputError 分开两类。
+ * 分开不是为了整洁：两者的下一步动作完全不同——链接错了去查 wechat 字段与 blogBase，
+ * 图片错了去查上传返回的地址与 .image-cache.json，共用一段文案等于两边都指不准。
+ */
+export class BadImageError extends UserFacingError {
+  constructor(offenders) {
+    const lines = [
+      '产物里出现了非素材库的图片地址，已中止。公众号正文的图片只有 mmbiz.qpic.cn 域名显示得出来，',
+      '其余域名会被防盗链打成红叉，而发布后正文不可修改：',
+      '',
+      ...[...new Set(offenders)].map((src) => `    · ${src || '(空地址)'}`),
+      '',
+      '  常见原因：注入的 resolveImage 回了个非素材库地址；',
+      '  scripts/wechat/.image-cache.json 里存着一条早年的坏记录（删掉该文件即可重传）；',
+      '  或正文里直接写了 HTML 的 <img> 标签（那会绕过图片改写）。',
+    ];
+    super(lines.join('\n'));
+  }
+}
+
+/** 正文引用的图片在仓库里找不到，或写成了远程地址 */
+export class ImageNotFoundError extends UserFacingError {
+  constructor(src, path) {
+    super(
+      path === null
+        ? `正文图片 ${src} 是远程地址，本工具只上传仓库里的文件。\n` +
+          `    先把图片存进 app/public/（与封面同处），正文里写相对路径，例如 images/x.png。`
+        : `正文图片找不到：${src}\n` +
+          `    按 app/public/ 下的相对路径解析，找的是 ${path}\n` +
+          `    随产物发布的静态文件一律放 app/public/——放 docs/ 会被下一次构建清掉。`
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // 渲染
 // ─────────────────────────────────────────────────────────────
@@ -224,8 +287,13 @@ function renderCodeBlock(token) {
  * @param {object} deps.config      blogBase 与 collectionUrl
  * @param {object} deps.stylesheet  buildStylesheet 的返回值
  * @param {(id: string) => string | null} [deps.readPost]  注入点，测试用来避开真实发布状态
+ * @param {((src: string) => { url: string } | null)?} [deps.resolveImage]
+ *        正文图片地址 → 素材库地址。**默认不传**：本函数因此保持离线，
+ *        测试与 API 不通时的退路都靠这一点。CLI 只在正文真的有图时才注入它
  */
-export function renderArticle(id, { config, stylesheet, readPost = readPostFromDisk, listIds = listPostIds }) {
+export function renderArticle(id, {
+  config, stylesheet, readPost = readPostFromDisk, listIds = listPostIds, resolveImage = null,
+}) {
   const raw = readPost(id);
   if (raw === null) {
     throw new PostNotFoundError(id, listIds());
@@ -247,6 +315,7 @@ export function renderArticle(id, { config, stylesheet, readPost = readPostFromD
   const deps = {
     blogBase: config.blogBase,
     collectionUrl: config.collectionUrl,
+    resolveImage,
     lookupPost: (targetId) => {
       const target = readPost(targetId);
       return target === null
@@ -423,13 +492,14 @@ export class MissingLinkError extends UserFacingError {
     // 抛异常会穿过 marked 被包上一句「请向 markedjs 提 issue」，把改稿需求伪装成崩溃。
     const images = of('bodyImage');
     if (images.length > 0) {
-      lines.push(`  正文里有 ${images.length} 张图片，本工具不处理：`);
+      lines.push(`  正文里有 ${images.length} 张图片没拿到素材库地址：`);
       for (const item of images) {
         lines.push(`    · ${item.url}${item.text ? `（alt「${item.text}」）` : ''}`);
       }
       lines.push('    公众号正文的图片必须先传微信素材库、换成 mmbiz.qpic.cn 开头的地址，');
-      lines.push('    否则在读者那里是一个红叉。要么把图片挪出正文（封面走后台单独上传，不算正文），');
-      lines.push('    要么按 guides/WECHAT_SYNC.md 二节的说明扩展本工具。');
+      lines.push('    否则在读者那里是一个红叉。命令行跑 build.mjs 或 draft.mjs 会自动上传，');
+      lines.push('    出现这条说明调用方没有注入 resolveImage，或那张图没传上。');
+      lines.push('    另一条出路是把图片挪出正文（封面走后台单独上传，不算正文）。');
       lines.push('');
     }
 
@@ -446,6 +516,115 @@ export class MissingLinkError extends UserFacingError {
 
     super(lines.join('\n').trimEnd());
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 正文图片
+//
+// 微信的防盗链会把外链图片打成红叉，正文图片必须先进素材库、换成 mmbiz.qpic.cn 的地址。
+// 上传要联网，而 build.mjs 的其余部分是纯离线的——那正是它作为「API 不通时的退路」的全部价值。
+// 所以这里的规矩是：**没有图就一个请求都不发**，有图才碰网络。
+//
+// 这一段放在 build.mjs 而不另立文件，是因为 draft.mjs 也要用同一份上传与缓存规则：
+// 两处各写一遍，迟早有一处的缓存键或错误处置漂掉，而症状要等到素材库配额满了才显形。
+// ─────────────────────────────────────────────────────────────
+/**
+ * 扫出正文引用的图片地址，去重后按出现顺序返回。
+ *
+ * 走 lexer 而非正则，理由与 rewriteMarkdown 那处相同：围栏代码块里的 `![图](x.jpg)` 不是图片。
+ * 判错的代价不只是白跑一轮网络——在一台没配 .env 的机器上，
+ * 它会把「产退路文件」直接变成「凭据缺失」，而那台机器要退路正是因为 API 不通。
+ */
+export function collectBodyImages(markdown) {
+  const srcs = new Set();
+  new Marked({
+    walkTokens: (token) => {
+      if (token.type === 'image') srcs.add(token.href ?? '');
+    },
+  }).parse(markdown);
+  return [...srcs];
+}
+
+/**
+ * 正文里写的图片路径 → 仓库里的文件。
+ * 与封面同一套解析（`app/public/` 下的相对路径），因为它们本就是同一批文件。
+ */
+function resolveImagePath(src, publicDir) {
+  if (/^https?:\/\//.test(src)) throw new ImageNotFoundError(src, null);
+  const path = join(publicDir, src.replace(/^\//, ''));
+  if (!existsSync(path)) throw new ImageNotFoundError(src, path);
+  return path;
+}
+
+/**
+ * 读上传缓存。文件坏了当空缓存处理，但要出声。
+ * 静默重来只会让素材库里凭空多出的副本没人知道从哪儿来的；
+ * 而为一个随时可重建的缓存文件挡住整次发稿，又太过。
+ */
+function readImageCache(cachePath) {
+  if (!existsSync(cachePath)) return {};
+  try {
+    return JSON.parse(readFileSync(cachePath, 'utf8'));
+  } catch {
+    console.warn(`  ${cachePath} 不是合法 JSON，这次当空缓存处理（图片会重传一遍）`);
+    return {};
+  }
+}
+
+/**
+ * 把正文图片传进微信素材库，返回可注入 renderArticle 的 resolveImage。
+ *
+ * 缓存键是**图片内容的 sha256**，不是路径：改了图就该重传，改了文件名不该。
+ * 缓存本身不是优化——微信永久素材有数量配额，而 build 是调一次样式就重跑一遍的东西，
+ * 没有它，素材库会随每次重跑堆一份内容相同的副本。
+ *
+ * 上传失败一律抛出，不吞、不占位、不降级：图片错了在读者那里是一个红叉，
+ * 而公众号发布后正文不可修改，没有补救机会。
+ *
+ * @param {string[]} srcs 正文里写的图片路径
+ * @param {object} deps
+ * @param {(path: string) => Promise<{mediaId: string, url: string}>} deps.upload
+ *        注入点，测试用它避开真实 API——这一整段的正确性（缓存命中、内容变更重传）
+ *        只有在能数上传次数时才验得了
+ * @param {string} [deps.cachePath]
+ * @param {string} [deps.publicDir]
+ */
+export async function uploadBodyImages(srcs, { upload, cachePath = IMAGE_CACHE_PATH, publicDir = PUBLIC_DIR }) {
+  const cache = readImageCache(cachePath);
+  const resolved = new Map();
+  let uploaded = 0;
+
+  for (const src of srcs) {
+    const path = resolveImagePath(src, publicDir);
+    const hash = createHash('sha256').update(readFileSync(path)).digest('hex');
+    if (!cache[hash]) {
+      cache[hash] = await upload(path);
+      uploaded++;
+    }
+    resolved.set(src, cache[hash]);
+  }
+
+  if (uploaded > 0) writeFileSync(cachePath, JSON.stringify(cache, null, 2), 'utf8');
+
+  return { resolveImage: (src) => resolved.get(src) ?? null, uploaded, total: srcs.length };
+}
+
+/**
+ * 有图才联网：取 token、上传、给出 resolveImage；没图返回 null，一个请求都不发。
+ * build.mjs 与 draft.mjs 的两个 main 共用这一步。
+ */
+export async function prepareBodyImages(markdown) {
+  const images = collectBodyImages(markdown);
+  if (images.length === 0) return { resolveImage: null, accessToken: null };
+
+  const accessToken = await getAccessToken(loadCredentials());
+  const result = await uploadBodyImages(images, {
+    upload: (path) => uploadPermanentImage(accessToken, path),
+  });
+  const cached = result.total - result.uploaded;
+  console.log(`正文图片 ${result.total} 张：新传 ${result.uploaded} 张` +
+    (cached > 0 ? `，${cached} 张命中 .image-cache.json（不重复占素材库配额）` : ''));
+  return { resolveImage: result.resolveImage, accessToken };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -499,7 +678,7 @@ function printChecklist({ meta, id, config, mdPath, htmlPath, footnotes, interna
 // ─────────────────────────────────────────────────────────────
 // 入口
 // ─────────────────────────────────────────────────────────────
-function main() {
+async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0 || args[0] === '--help') {
@@ -516,7 +695,11 @@ function main() {
   const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
   const stylesheet = buildStylesheet(INDEX_CSS);
 
-  const { meta, html, markdown, footnotes, internalLinks } = renderArticle(id, { config, stylesheet });
+  // 正文有图才联网。没有图时这条命令仍是纯离线的——那正是它作为退路通道的价值。
+  const { resolveImage } = await prepareBodyImages(readPostFromDisk(id) ?? '');
+
+  const { meta, html, markdown, footnotes, internalLinks } =
+    renderArticle(id, { config, stylesheet, resolveImage });
 
   mkdirSync(OUT_DIR, { recursive: true });
   const htmlPath = join(OUT_DIR, `${id}.html`);
@@ -535,9 +718,7 @@ function main() {
 
 // 仅在被直接执行时跑 CLI；被 import 时（测试）只取导出的函数
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
-  try {
-    main();
-  } catch (error) {
+  main().catch((error) => {
     console.error('');
     if (error instanceof UserFacingError) {
       console.error(error.message);
@@ -549,5 +730,5 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
     }
     console.error('');
     process.exit(1);
-  }
+  });
 }

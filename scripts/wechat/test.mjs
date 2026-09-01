@@ -1,23 +1,29 @@
 /**
  * [INPUT]: 依赖 ./links.mjs 的 createLinkRewriter、./styles.mjs 的 buildStylesheet、
- *          ./build.mjs 的 renderArticle 与 readWechatUrl，依赖 marked 驱动 renderer
+ *          ./build.mjs 的 renderArticle、readWechatUrl、图片上传与两道出厂不变量，
+ *          依赖 marked 驱动 renderer
  * [OUTPUT]: 可执行测试，`node scripts/wechat/test.mjs`，失败时退出码非 0
- * [POS]: scripts/wechat 的唯一测试。分两层：链接分流的单元断言，
+ * [POS]: scripts/wechat 的唯一测试。分两层：链接与图片分流的单元断言，
  *        以及经 renderArticle 驱动的真管线断言（juice 内联与出厂不变量只在那一层才看得见）。
- *        全部注入假文章，因此不读也不改真实文章的发布状态。
+ *        全部注入假文章、假 resolveImage、假 upload 与临时目录，因此**全程不发一个网络请求**，
+ *        不读也不改真实文章的发布状态，也不在素材库留任何东西。
  *        存在的理由：链接分流错了不会在生成时报出来，要等文章发出去、读者点不动才暴露，
- *        而公众号正文发布后不可修改——这类错误没有补救机会
+ *        图片更糟——错了直接是读者眼前一个红叉，而公众号正文发布后不可修改
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { Marked } from 'marked';
 import { createLinkRewriter } from './links.mjs';
 import { buildStylesheet } from './styles.mjs';
 import {
-  renderArticle, readWechatUrl,
+  renderArticle, readWechatUrl, collectBodyImages, uploadBodyImages,
+  assertOnlyWechatLinks, assertOnlyWechatLinksInMarkdown,
   UserFacingError, MissingLinkError, BadOutputError, FrontmatterDriftError, PostNotFoundError,
+  BadImageError, ImageNotFoundError,
 } from './build.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const INDEX_CSS = join(resolve(HERE, '../..'), 'app/src/index.css');
@@ -39,20 +45,21 @@ const lookupPost = (id) => {
 };
 
 /** 只跑链接分流层 */
-function render(markdown, { collectionUrl = COLLECTION, blogBase = BASE } = {}) {
-  const rewriter = createLinkRewriter({ blogBase, collectionUrl, lookupPost });
+function render(markdown, { collectionUrl = COLLECTION, blogBase = BASE, resolveImage } = {}) {
+  const rewriter = createLinkRewriter({ blogBase, collectionUrl, lookupPost, resolveImage });
   const html = new Marked({ renderer: rewriter.renderer }).parse(markdown);
   return { html, ...rewriter };
 }
 
 /** 跑完整管线：分流 → juice 内联 → 出厂不变量 */
 const STYLESHEET = buildStylesheet(INDEX_CSS);
-function pipeline(markdown, { collectionUrl = COLLECTION, blogBase = BASE } = {}) {
+function pipeline(markdown, { collectionUrl = COLLECTION, blogBase = BASE, resolveImage } = {}) {
   const posts = { ...POSTS, __main: `---\ntitle: 测试文\n---\n${markdown}` };
   return renderArticle('__main', {
     config: { blogBase, collectionUrl },
     stylesheet: STYLESHEET,
     readPost: (id) => posts[id] ?? null,
+    resolveImage,
   });
 }
 
@@ -80,6 +87,16 @@ function hasNot(haystack, needle, what) {
 function throws(fn, needle, what) {
   let error = null;
   try { fn(); } catch (e) { error = e; }
+  if (!error) throw new Error(`${what}: 预期中断，但顺利产出了`);
+  if (!error.message.includes(needle)) {
+    throw new Error(`${what}: 报错里没有「${needle}」，实际是 ${error.message.split('\n')[0]}`);
+  }
+  return error;
+}
+/** throws 的异步版，供上传那几条用 */
+async function throwsAsync(fn, needle, what) {
+  let error = null;
+  try { await fn(); } catch (e) { error = e; }
   if (!error) throw new Error(`${what}: 预期中断，但顺利产出了`);
   if (!error.message.includes(needle)) {
     throw new Error(`${what}: 报错里没有「${needle}」，实际是 ${error.message.split('\n')[0]}`);
@@ -280,6 +297,155 @@ await check('图片的报错文案说清了该怎么办，且不带 marked 的�
   has(error.message, '封面走后台单独上传', '给出的出路');
 });
 
+console.log('\n正文图片（先传素材库，换成 mmbiz.qpic.cn 的地址）');
+
+const MMBIZ = 'https://mmbiz.qpic.cn/mmbiz_jpg/FakeMediaId/0?wx_fmt=jpeg';
+// 只认得这一张，其余一律 null——同一个假注入同时覆盖「传上了」与「没传上」两条路
+const fakeResolve = (src) => (src === 'covers/x.jpg' ? { url: MMBIZ } : null);
+
+await check('HTML 通道：图片地址换成素材库的，img 标签正常出厂', async () => {
+  const { html } = pipeline('![封面](covers/x.jpg)', { resolveImage: fakeResolve });
+  has(html, `<img src="${MMBIZ}"`, '改写结果');
+  has(html, 'alt="封面"', 'alt 文字');
+  hasNot(html, 'covers/x.jpg', '本地路径残留');
+});
+
+// 与链接同理：两条通道的图片规则必须是同一份 classifyImage，否则会各自漂移。
+await check('markdown 通道：同一张图得到同样的结论（规则确实只有一份）', async () => {
+  const { markdown } = pipeline('![封面](covers/x.jpg)', { resolveImage: fakeResolve });
+  has(markdown, `![封面](${MMBIZ})`, '改写结果');
+  hasNot(markdown, 'covers/x.jpg', '本地路径残留');
+});
+
+await check('不注入 resolveImage 时仍走 missing 并中断（离线路径不回归）', async () => {
+  const { missing, html } = render('![封面](covers/x.jpg)');
+  eq(missing.length, 1, 'missing 条数');
+  eq(missing[0].kind, 'bodyImage', 'missing 类型');
+  hasNot(html, '<img', '不该留下 img 标签');
+  throws(() => pipeline('![封面](covers/x.jpg)'), 'mmbiz.qpic.cn', '中断');
+});
+
+// 「这张没传上」与「压根没启用上传」处置相同：都不能产出半成品。
+// 静默出一个空图或占位图，等于把红叉推到读者眼前，而公众号发布后正文不可修改。
+await check('resolveImage 返回 null 时同样中断，不留空图', async () => {
+  const { missing, html } = render('![漏网](covers/other.jpg)', { resolveImage: fakeResolve });
+  eq(missing[0].kind, 'bodyImage', 'missing 类型');
+  eq(missing[0].url, 'covers/other.jpg', '图片地址');
+  hasNot(html, '<img', '不该留下 img 标签');
+  throws(() => pipeline('![漏网](covers/other.jpg)', { resolveImage: fakeResolve }), 'mmbiz.qpic.cn', '中断');
+});
+
+// 出厂不变量与事前分类互补：分类只管「有没有拿到地址」，域名对不对由这一道兜底。
+// 上传接口哪天换个域名回来、或注入方给了个本地路径，都在这里被接住。
+await check('出厂不变量拦住非 mmbiz 的 img src（HTML 通道）', async () => {
+  throws(
+    () => assertOnlyWechatLinks('<p><img src="https://example.com/x.jpg" alt="x"></p>'),
+    'mmbiz.qpic.cn',
+    'HTML 图片不变量'
+  );
+  // 正常地址不该被误伤
+  assertOnlyWechatLinks(`<p><img src="${MMBIZ}" alt="x"></p>`);
+});
+
+await check('出厂不变量拦住非 mmbiz 的图片地址（markdown 通道）', async () => {
+  throws(
+    () => assertOnlyWechatLinksInMarkdown('![x](https://example.com/x.jpg)'),
+    'mmbiz.qpic.cn',
+    'md 图片不变量'
+  );
+  throws(
+    () => assertOnlyWechatLinksInMarkdown('见 <img src="https://example.com/x.jpg">'),
+    'mmbiz.qpic.cn',
+    'md 里内嵌 HTML 的 img'
+  );
+  assertOnlyWechatLinksInMarkdown(`![x](${MMBIZ})`);
+});
+
+await check('图片的出厂不变量是独立的一类错误，也归 UserFacingError', async () => {
+  const error = throws(
+    () => pipeline('![封面](covers/x.jpg)', { resolveImage: () => ({ url: 'https://example.com/x.jpg' }) }),
+    'mmbiz.qpic.cn',
+    '真管线里的图片不变量'
+  );
+  if (!(error instanceof BadImageError)) throw new Error('该是 BadImageError');
+  if (!(error instanceof UserFacingError)) throw new Error('该是用户侧错误');
+});
+
+// CLI 靠这个函数决定「这次要不要联网」。判多了会让一篇没有图的文章白跑一轮网络，
+// 更糟的是在没配 .env 的机器上把「产退路文件」变成「凭据缺失」。
+await check('没有图片的文章扫不出图，CLI 据此一个请求都不发', async () => {
+  eq(collectBodyImages('# 标题\n\n一段正文，含[链接](https://example.com)。').length, 0, '图片数');
+});
+
+await check('围栏代码块里的图片语法不算正文图片', async () => {
+  eq(collectBodyImages('```\n![图](covers/x.jpg)\n```').length, 0, '图片数');
+  eq(collectBodyImages('![图](covers/x.jpg)').length, 1, '真图片数');
+});
+
+// 微信永久素材有数量配额，而 build 是随手重跑的：没有缓存，调一次样式
+// 就在素材库里多堆一份内容相同的图。
+await check('同一张图重复 build 不重复上传（缓存命中）', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wechat-img-'));
+  try {
+    mkdirSync(join(dir, 'covers'), { recursive: true });
+    writeFileSync(join(dir, 'covers/x.jpg'), 'fake-jpeg-bytes');
+    const cachePath = join(dir, '.image-cache.json');
+    let calls = 0;
+    const upload = async () => { calls++; return { mediaId: `m${calls}`, url: MMBIZ }; };
+
+    const first = await uploadBodyImages(['covers/x.jpg'], { upload, cachePath, publicDir: dir });
+    eq(calls, 1, '首次上传次数');
+    eq(first.uploaded, 1, '首次新传张数');
+    eq(first.resolveImage('covers/x.jpg').url, MMBIZ, '解析结果');
+
+    const second = await uploadBodyImages(['covers/x.jpg'], { upload, cachePath, publicDir: dir });
+    eq(calls, 1, '第二次不该再发上传请求');
+    eq(second.uploaded, 0, '第二次新传张数');
+    eq(second.resolveImage('covers/x.jpg').url, MMBIZ, '缓存里取出的地址');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// 键用内容 hash 而不是路径：改了图就该重传，改了文件名不该。
+await check('改了图片内容就重传（缓存键是内容 hash，不是路径）', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wechat-img-'));
+  try {
+    mkdirSync(join(dir, 'covers'), { recursive: true });
+    const file = join(dir, 'covers/x.jpg');
+    const cachePath = join(dir, '.image-cache.json');
+    let calls = 0;
+    const upload = async () => { calls++; return { mediaId: `m${calls}`, url: MMBIZ }; };
+
+    writeFileSync(file, 'first-version');
+    await uploadBodyImages(['covers/x.jpg'], { upload, cachePath, publicDir: dir });
+    writeFileSync(file, 'second-version');
+    await uploadBodyImages(['covers/x.jpg'], { upload, cachePath, publicDir: dir });
+    eq(calls, 2, '换了内容后的上传次数');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await check('图片文件不存在时给出可读错误，而不是一句 ENOENT', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wechat-img-'));
+  try {
+    const error = await throwsAsync(
+      () => uploadBodyImages(['covers/nope.jpg'], {
+        upload: async () => { throw new Error('不该走到上传'); },
+        cachePath: join(dir, '.image-cache.json'),
+        publicDir: dir,
+      }),
+      'app/public',
+      '找不到图片'
+    );
+    if (!(error instanceof ImageNotFoundError)) throw new Error('该是 ImageNotFoundError');
+    if (!(error instanceof UserFacingError)) throw new Error('该是用户侧错误');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 console.log('\n真管线：juice 内联 + 出厂不变量');
 
 // 这几个值取自微信自带格式模板的实测（2026-08 用 draft/get 拉回成品量的），
@@ -452,7 +618,10 @@ console.log('\n错误分类（用户侧条件不该呈现成崩溃）');
 // 漏继承不会报错，只会安静地把「这篇得改稿」呈现成崩溃——
 // 而普通断言只查 message 含某关键词，压根不关心走了哪个分支，抓不到这种退化。
 await check('所有用户侧错误都继承 UserFacingError，否则 CLI 会打堆栈', async () => {
-  for (const E of [MissingLinkError, BadOutputError, FrontmatterDriftError, PostNotFoundError]) {
+  for (const E of [
+    MissingLinkError, BadOutputError, FrontmatterDriftError, PostNotFoundError,
+    BadImageError, ImageNotFoundError,
+  ]) {
     if (!(E.prototype instanceof UserFacingError)) throw new Error(`${E.name} 没继承 UserFacingError`);
   }
 });
