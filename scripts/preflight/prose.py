@@ -32,6 +32,12 @@ WHITELIST = {"title", "category", "tags", "date", "cover", "readTime", "excerpt"
 TARGETS = {
     "入门": {"段落均长": 25.0, "句子均长": 23.0, "「你」每千字": 20.5, "问句每千字": 8.0},
     "实作": {"段落均长": 25.0, "句子均长": 23.0, "「你」每千字": 22.0, "问句每千字": 10.0},
+    # 实战轨（AI Agent 实操系列）是操作手册不是专栏，段落与句子结构本就不同，
+    # 现有两轨的目标值套上来只会误导。目标值先留空：只报数、只跟同轨历史比区间，
+    # 等发够三五篇有了样本再回填。
+    # 必须列在这里而不是让它落进 DEFAULT_TRACK——否则会被当成入门篇，
+    # 既拿错目标值，又把它混进入门篇的区间，重演 BLOG_PLAYBOOK 第四节那个「区间拉宽到失效」。
+    "实战": {"段落均长": None, "句子均长": None, "「你」每千字": None, "问句每千字": None},
 }
 DEFAULT_TRACK = "入门"
 
@@ -234,6 +240,9 @@ def check(path):
     for k, target in TARGETS[track].items():
         v = stats[k]
         band, flag = band_of(k, v)
+        if target is None:
+            print(f"  {k:<14}{v:>6.1f}   暂不设目标（样本不足）  {band}{flag}")
+            continue
         gap = "" if abs(v - target) / target < 0.15 else ("↓" if v < target else "↑")
         print(f"  {k:<14}{v:>6.1f}{gap:<2} 目标 {target:<6}{band}{flag}")
 
