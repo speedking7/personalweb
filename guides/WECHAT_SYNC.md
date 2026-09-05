@@ -319,9 +319,24 @@ AppSecret 在后台只显示一次，错过要重置。**一旦以任何方式�
 不变量的 pattern 当初写成 `https?` 是必要的——收紧成任何一种，都会让我们自己的闸门
 拒掉微信刚发给我们的地址，而且要到送稿那一刻才炸。
 
-其二，**微信确实在保存时重写了 `src`，但只改协议**：草稿里拉回来的是 `https://mmbiz.qpic.cn/…`，
-域名与路径一字未动。这正是当初那条顾虑的实际形态——担心是对的，程度是轻的。
-反过来说，不变量必须同时认 `http` 与 `https`，否则「送进去」与「拉回来」两侧会有一侧不过。
+其二，**微信会重写 `src`，而且分两段重写，别只看草稿就下结论**：
+
+| 阶段 | 地址形态 |
+|---|---|
+| `add_material` 返回 | `http://mmbiz.qpic.cn/mmbiz_jpg/TuSHpQIZFJVtgrFSpRwyB6Uu…` |
+| 存进草稿后拉回 | `https://mmbiz.qpic.cn/mmbiz_jpg/TuSHpQIZFJVtgrFSpRwyB6Uu…`（只改协议） |
+| **发表之后** | `https://mmbiz.qpic.cn/**sz_mmbiz_jpg**/TuSHpQIZFJWdV28caHq3dic…`（**路径前缀与 hash 全变**） |
+
+这条 2026-08-31 当天先写成了「只改协议」，几十分钟后打开已发表的文章才发现那只对草稿阶段成立——
+**发表时微信把图重新转存了一份**，`mmbiz_jpg` 变 `sz_mmbiz_jpg`，后面那串 hash 也不是同一个。
+
+实际影响：不变量只管送稿那一侧（草稿），够用，不必改。
+但**凡是拿上传时的 `url` 去比对已发布文章的做法都会落空**——比如将来想写个「检查历史文章的图还在不在」的脚本，
+必须从已发表页面的 `data-src` 取，不能拿 `.image-cache.json` 里的地址去比。
+
+顺带记一条取数的坑：已发表页面里 `<img>` 的 `src` 是 `data:image/svg+xml` 占位符、
+`naturalWidth` 为 1×1，**微信正文图是懒加载的，真地址在 `data-src` 属性上**。
+只看 `src` 会得出「图加载成功」的假结论——那成功的是占位符。
 
 其三，图片的内联样式完整保留：`display: block; max-width: 100%; height: auto; margin: 2rem auto; …`
 一路从 `app/src/index.css` 的 `.prose img` 经 `styles.mjs` 自动抽取、juice 内联，

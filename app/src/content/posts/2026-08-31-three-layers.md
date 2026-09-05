@@ -6,6 +6,7 @@ cover: covers/three-layers.jpg
 date: 2026-08-31
 readTime: 8
 excerpt: 提示词工程、上下文工程、harness（驾驭工程）。三个词长得像同类项，其实不是——前两个说的是你给它什么，第三个说的是你怎么管住它。
+wechat: https://mp.weixin.qq.com/s/XfU0-ZhEHal7Lvs6ZifmpA
 ---
 
 这半个月，三个人问了我同一件事。
