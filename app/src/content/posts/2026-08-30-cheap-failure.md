@@ -6,6 +6,7 @@ cover: covers/cheap-failure.jpg
 date: 2026-08-30
 readTime: 9
 excerpt: 他试了两次，不行，就停了。这套动作放在三年前完全正确——一件事只有一次机会，所以那一次必须对。可这笔账已经换了算法，而大部分人还在用旧的算。
+wechat: https://mp.weixin.qq.com/s/hXTd0oOKz4hfsbA6MudLrw
 ---
 
 [上一篇讲的是给自己划格子，哪些事你验得了，哪些验不了](https://blog.yingtongxue.cn/#/blog/2026-08-29-draw-your-own-map)。
