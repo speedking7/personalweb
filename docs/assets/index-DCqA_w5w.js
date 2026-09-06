@@ -2518,6 +2518,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-00.jpg
 date: 2026-09-06
+wechat: https://mp.weixin.qq.com/s/oFjEokcnHfwiMdftAFFdWg
 readTime: 4
 excerpt: 一个面向业务顾问的 AI Agent 实操系列。不讲模型原理，不讲编程，讲怎么把手上一件业务的活，安全地交出去一部分。全系列以 knodo 平台为样例载体，方法本身与平台无关。
 ---
