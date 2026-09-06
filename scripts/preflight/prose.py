@@ -181,6 +181,21 @@ def gates(path, fm, body, stats):
         else "；".join(broken[:3]) + " → 把标点挪到 ** 外面（**文字**。 而不是 **文字。**）。"
              "页面照常显示，只是把星号原样印出来")
 
+    # markdown 表格要 remark-gfm 才渲染得出来。react-markdown 不带它，
+    # 没挂插件时表格被当成普通段落，页面上是一行行竖线文本——照常显示、构建不报错。
+    # 前七篇是散文轨一张表都没有，所以这个坑一直没暴露；第三轨「实战」的规矩是
+    # 「表格优先于散文」，2026-09-06 发首篇时当场撞上。
+    # 只在文章真的含表格时才查，免得散文篇天天飘红——那样人会连闸门一起忽略。
+    has_table = bool(re.search(r"^\s*\|.+\|\s*$", strip_code(body), re.M))
+    if has_table:
+        detail_tsx = (ROOT / "app/src/pages/BlogDetail.tsx")
+        wired = detail_tsx.exists() and "remarkGfm" in detail_tsx.read_text(encoding="utf-8")
+        add(wired, "表格渲染管线",
+            "BlogDetail 已挂 remark-gfm" if wired
+            else "本文含 markdown 表格，但 BlogDetail.tsx 没挂 remark-gfm → "
+                 "表格会被渲染成一行行竖线文本，页面照常显示、构建不报错。"
+                 "装 remark-gfm 并加到 remarkPlugins")
+
     # 「结尾段短于正文均长」刻意不在这里。它是看得见、随时能改的风格问题，
     # 不是静默失败；而且带附录的文章（正文后跟大段代码块）会被误判——
     # 第二篇的真结尾是 22 字冷短句，脚本看到的却是附录引导语。放指标区报数。

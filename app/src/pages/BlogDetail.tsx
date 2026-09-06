@@ -4,6 +4,11 @@ import { ArrowLeft, Calendar, Clock, Tag, Loader2 } from 'lucide-react';
 import { getBlogPost, getBlogPosts, type BlogPost } from '@/data/blogs';
 import { recordView } from '@/lib/views';
 import ReactMarkdown from 'react-markdown';
+// remark-gfm 撑的是 GFM 表格。不挂它，markdown 表格会被当成普通段落渲染出来——
+// 页面照常显示，只是变成一行行竖线文本，构建不报错。前七篇是散文轨没有表格，
+// 所以这个坑一直没暴露；实战轨「表格优先于散文」，第一篇就撞上了。
+// 注意公众号侧用的是 marked，它原生支持 GFM——两条通道的解析能力本来就不一样。
+import remarkGfm from 'remark-gfm';
 import { Comments } from '@/components/Comments';
 
 export function BlogDetail() {
@@ -125,7 +130,7 @@ export function BlogDetail() {
               哪天有人装上插件，它会立刻盖掉 index.css 里的链接色，链接又变回看不见。
               故一并移除，样式的唯一出处是 index.css。 */}
           <div className="prose prose-lg max-w-none">
-            <ReactMarkdown>{post.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
           </div>
         </article>
 

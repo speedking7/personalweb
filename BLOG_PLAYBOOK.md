@@ -560,6 +560,23 @@ print([x.strip() for x in re.search(r'tags:\s*\[([^\]]+)\]',t).group(1).split(',
 当成开启星号，报出误判。第一版正则就是这么多报了一处，是拿真解析器
 （remark，与前端 ReactMarkdown 同源）复核才分辨出来的。
 
+### 雷四 · markdown 表格默认不渲染
+
+`react-markdown` 不带 GFM。没挂 `remark-gfm` 时，markdown 表格**不会报错**，
+它被当成普通段落渲染出来——页面上是一行行带竖线的文本，构建照常成功。
+
+**跟前三个雷是同一种病**，只是这一个直到 2026-09-06 才暴露：前七篇是散文轨，
+一张表都没有。第三轨「实战」的写作规范里写着「表格优先于散文」，首篇发出去当场撞上。
+
+修法是三处一起：`npm i remark-gfm`、`BlogDetail.tsx` 加 `remarkPlugins={[remarkGfm]}`、
+`index.css` 补 `.prose table/th/td` 规则（在那之前一条表格样式都没有，
+挂了插件也是裸表）。`prose.py` 已加条件闸门：**只在文章含表格时才查**。
+
+**顺带记一条两条通道的分野**：公众号侧用的是 `marked`，它**原生支持 GFM 表格**。
+所以同一份 markdown，公众号版的表格一直是好的，只有博客版是坏的。
+CLAUDE.md 里那句「两源共用 parseBlogMetadata，规则只有一份不会各自漂移」
+说的是 **frontmatter**；**正文渲染是两个不同的解析器，能力本来就不一样**，别混。
+
 ### 封面路径
 
 frontmatter 里写相对路径 `covers/x.jpg`，`data/blogs.ts` 的 `resolveCover` 会补部署前缀。不要写成 `/covers/x.jpg`。

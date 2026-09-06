@@ -225,3 +225,38 @@
   border: 1px solid #ece5da;
   border-radius: 3px;
 }
+
+/* 正文表格。第三轨「实战」是操作手册，规矩是「表格优先于散文」，
+   所以这一套是它的主要载体，不是点缀。
+
+   前七篇是散文轨一张表都没有，于是有两处一直没暴露：
+   一是 BlogDetail 没挂 remark-gfm，markdown 表格被当普通段落渲染成竖线文本；
+   二是这里根本没有表格样式。两处都是静默失败——页面照常显示，构建不报错。
+   2026-09-06 发第三轨首篇时一起补上。
+
+   边框取 #ece5da，与上面 .prose img 同色，让图与表在正文里是同一层材质。
+   表头底色 #faf8f5 比页面底 #f0efe9 略亮，只做分层不做强调。
+   字号压到 0.92em：正文容器桌面端只有六百多像素，三列以上的表按 1em 排会挤。
+
+   改这里等于同时改公众号版——styles.mjs 的样式基线就是从这份 .prose 抽的，
+   而公众号侧用 marked 解析，它原生支持 GFM 表格，所以那一侧缺的一直只有样式。 */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  font-size: 0.92em;
+  line-height: 1.6;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #ece5da;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background-color: #faf8f5;
+  font-weight: 600;
+}
