@@ -2635,7 +2635,7 @@ excerpt: 一个面向业务顾问的 AI Agent 实操系列。不讲模型原理�
 
 下一篇动手搭第一个 Agent。
 `,$w=`---
-title: AI Agent 实战 01 · 四步搭出第一个问答 Agent（全程无代码）
+title: AI Agent 实战 01 · 四步搭出一个问答 Agent
 category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-01.jpg
