@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-01.jpg
 date: 2026-09-06
+wechat: https://mp.weixin.qq.com/s/l87GC-ixaQ3NxxD0VFSXww
 readTime: 9
 excerpt: 建工作空间、上传知识文件、新建 AI 成员写规矩、提问验收。全程点击，不写一行代码。搭完手上会有一个能依据你的制度文件回答问题的 Agent，以及五道题的验收记录。
 ---
