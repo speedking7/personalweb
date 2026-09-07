@@ -6,6 +6,56 @@
 
 ---
 
+## 零、当前进度（2026-09-07 更新，接手先读这一节）
+
+### 已发布
+
+| 篇 | 标题 | 博客 | 公众号 |
+|---|---|---|---|
+| 00 | 这个系列讲什么 | ✅ | ✅ 已回填 `wechat:` |
+| 01 | 四步搭出一个问答 Agent | ✅ | ✅ 已回填 `wechat:` |
+| 02 | 三个低风险特征，四类升高因素 | ✅ | **草稿箱待站主发表** |
+
+**02 的待办**：站主发表后把永久链接回填进
+`app/src/content/posts/2026-09-07-agent-02-risk-sources.md` 的 `wechat:` 字段，
+然后 `npm run build` 并提交。草稿 media_id 在当次 `draft.mjs` 输出里。
+
+### 下一篇是 03（风险分级 L1–L4 的判定方法）
+
+动笔前必读：本文件第四节写作规范（含那张一天犯三次的自查表）、
+`02-model-comparison.md`（模型作为分级表外的那一格）、
+以及第 02 篇末尾那张五行自评表——**03 篇要把它变成定级依据**。
+
+### 演示环境的现状
+
+knodo 上有一个在跑的演示空间 `研发流程问答（演示）`，里面有 Bot `流程助手`、
+三份虚构流程制度（`01-demo-kb/`）、以及五道验收题的会话。均为 `PRIVATE`。
+凭据在 `~/projects/knodo/.env`（`KNODO_PAT` / `KNODO_API`），
+**注意 `/files/tree` 用参数 `path`、`/files/content` 用 `filePath`，同一套 API 里不统一**。
+
+### 这一轮踩出来的、影响后续每一篇的东西
+
+**发布侧新增三个雷**（全部记在 `BLOG_PLAYBOOK.md` 第六节）：
+markdown 表格默认不渲染（已装 `remark-gfm` 并补 `.prose table` 样式）、
+有序列表在公众号里散架（源头别用，改二列表格）、
+实战轨标题只剩 15 字预算（前缀「AI Agent 实战 NN · 」占 17 字，公众号上限 32）。
+
+**`prose.py` 闸门增到八条**，其中两条是这一轮加的，且都是条件触发。
+
+**加粗被中文标点吃掉这条犯得极频繁**（02 篇一篇修了七处）。
+写完用这段自动扫，判据照抄闸门那套 CommonMark 按序配对，别用正则找 `**...**`：
+
+```python
+# 把闭合 ** 前的标点挪到星号外面，直到扫不出为止
+marks=[m.start() for m in re.finditer(r'\*\*', line)]
+for k in range(1,len(marks),2):   # 奇数下标是闭合位
+    i=marks[k]; prev=line[i-1]; nxt=line[i+2]
+    if prev is punct and nxt is not space and nxt is not punct:
+        line = line[:i-1] + '**' + line[i-1] + line[i+2:]
+```
+
+---
+
 ## 一、这个系列教什么
 
 **不是教怎么写提示词，是教怎么把一件业务上的活，安全地交出去一部分。**
