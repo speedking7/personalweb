@@ -434,6 +434,9 @@ holograms, 3D render look.
 - 第 5 篇：identical from the outside, revealed only when cut open
 - 第 6 篇：one carefully rationed attempt versus many cheap discarded ones
 - 第 7 篇：a tangle of leather straps versus the same straps fitted into a working harness
+- 实战轨第 3 篇：one mixed pile weighed as a single thing versus the same pieces sorted onto four rising tiers, where a single piece alone occupies the highest tier
+
+**实战轨 00、01、02 三张的 Concept 句没落盘**，当时只活在对话里，事后补不回来。从 03 起逐篇记。
 
 ### 五条经验
 
@@ -446,6 +449,11 @@ holograms, 3D render look.
   `with all objects inset well away from the left and right edges`。
 - **别用几何措辞描述位置。** `central two thirds of the frame` 这类话会被当成「要画出来的区域」——第 5 篇实测，模型真画了个居中面板出来，两侧另换一种背景色，顶部取样的横向色差从 3 跳到 5，跳变点精确落在 15% 和 90%。要约束位置就只描述物件之间的关系（谁在谁旁边、中间隔多远、不许靠近画幅边缘），并把「背景通铺一色、左中右完全一致」单独提成一条硬约束写在提示词最前面，`Absolutely avoid:` 里再补一句 `any rectangular panel or band of a different background shade`。
 - **物件顶到边不必重出图，后期等比缩放就能救。** 把整幅内容按目标占宽等比缩小后居中，背景取原图顶部那条纯背景拉伸铺满——纸纹跟着保留，接缝看不出来，构图比例一点不动。上面那条「抽中间留白合拢」只在中间有富余留白时可用，满幅出血时失效；等比缩放没这个限制。第 5 篇实测缩到 50.5%，物件从 4.0%~95.9% 变成 16.7%~83.2%，1.36:1 与 1.2:1 两种裁切下全部物件与橙色点都是 100% 存活。**这三版换来的判断是：留白是后期能补的，风格不是。**每重出一次就坏一样别的东西——第一版整瓜是干净的炭灰线条，第二版就被填了灰。
+- **缩完补边要用镜像平铺，不是拉伸（2026-09 第 03 篇实测）。** 等比缩小后空出来的边得拿背景补。
+  原做法是取一条干净横带纵向拉伸铺满，而十倍拉伸会把横带自身的横向渐变一并放大——色差从 4 跳到 7，
+  背景闸门当场不过，只好退回纯色、纸纹全丢。改成按原尺寸上下重复、隔行镜像之后，色差就是源图那个 4，
+  **而纸纹标准差跟拉伸完全相同（1.69）——拉伸那条路白付了代价**。`fit.py` 已把平铺排在拉伸前面，
+  不必手工干预；第 03 篇封面因此在物件从 9.5%~90.5% 压进 16.5%~83.4% 之后仍带着纸纹。
 - **橙色点在有语义的那个物件上。** 第 3 篇点在钥匙上，因为文中 MCP 的比喻就是「给他一把钥匙」，读者读到那节会回头认出封面。
 
 ### 正文插图：跟封面不是一套标准

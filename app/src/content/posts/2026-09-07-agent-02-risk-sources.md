@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-02.jpg
 date: 2026-09-07
+wechat: https://mp.weixin.qq.com/s/EVc-kAWbRaxe6fXHETOJug
 readTime: 9
 excerpt: 上一篇搭出来的那个问答 Agent 可以直接用，理由不是它简单，是它只读、只生成、结果可回原文核对。这一篇把这三条特征讲清楚，再列出四类会让风险升上去的因素，外加一个不在任何分级表里的第五因素。
 ---
