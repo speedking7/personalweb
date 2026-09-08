@@ -9,7 +9,7 @@
 import sys
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cover import SIZE, CROPS, BAND_TOL, is_bg, measure, survival  # noqa: E402
@@ -57,6 +57,21 @@ def clean_strip(im):
     return None
 
 
+def tile(strip, W, H):
+    """把干净带按原尺寸上下重复铺满，隔行镜像消接缝。
+    与拉伸的分野只有一处，却是决定性的：它不改变纸纹的纵向尺度，
+    因而不放大横带自身的横向渐变。第 03 篇封面实测，拉伸色差 7 不合格、平铺 4 合格，
+    而纸纹标准差两者相同（1.69），也就是说拉伸那条路白付了代价。"""
+    canvas = Image.new("RGB", (W, H))
+    sh = strip.size[1]
+    y = k = 0
+    while y < H:
+        canvas.paste(strip if k % 2 == 0 else ImageOps.flip(strip), (0, y))
+        y += sh
+        k += 1
+    return canvas
+
+
 def inset(im):
     """等比缩小整幅内容并居中，把物件压进安全区。
     与「抽中间留白合拢」互补：那招要求中间有富余留白，满幅出血时失效；这招没有这个前提。
@@ -75,14 +90,18 @@ def inset(im):
     strip = clean_strip(im)
     canvas, why = None, ""
     if strip is not None:
-        cand = strip.resize((W, H), Image.LANCZOS)
-        # 拉伸会把横带自身的横向渐变一并放大。加工工具不许引入新缺陷，
-        # 所以铺完自己量一次，超容差就退回纯色——宁可丢纸纹，不留色带。
-        if measure(cand)["spread"] <= BAND_TOL:
-            canvas = cand
-            why = "背景取自图内干净带（纸纹保留）"
-        else:
-            why = "干净带拉伸后横向色差超容差，退回纯色铺底（纸纹会丢）"
+        # 铺底两条路，按「对源图的忠实度」排序，不是按代码简单排序。
+        # 一是镜像平铺：原尺寸重复，纸纹一比一保留，横向色差就是源图背景自己那点色差。
+        # 二是纵向拉伸：十倍抻开会把横带自身的横向渐变一并放大（实测色差 4 → 7）。
+        # 加工工具不许引入新缺陷，所以每条铺完都自己量一次，都超容差才退回纯色。
+        for cand, tag in ((tile(strip, W, H), "镜像平铺"),
+                          (strip.resize((W, H), Image.LANCZOS), "纵向拉伸")):
+            if measure(cand)["spread"] <= BAND_TOL:
+                canvas = cand
+                why = f"背景取自图内干净带，{tag}（纸纹保留）"
+                break
+        if canvas is None:
+            why = "干净带两种铺法横向色差都超容差，退回纯色铺底（纸纹会丢）"
     if canvas is None:
         px = im.load()
         corners = [px[1, 1], px[W - 2, 1], px[1, H - 2], px[W - 2, H - 2]]
