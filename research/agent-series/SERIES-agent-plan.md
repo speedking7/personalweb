@@ -15,10 +15,13 @@
 | 00 | 这个系列讲什么 | ✅ | ✅ 已回填 `wechat:` |
 | 01 | 四步搭出一个问答 Agent | ✅ | ✅ 已回填 `wechat:` |
 | 02 | 三个低风险特征，四类升高因素 | ✅ | ✅ 已回填 `wechat:` |
-| 03 | L1 到 L4：按动作定级 | ✅ | **待送稿** |
+| 03 | L1 到 L4：按动作定级 | ✅ | **已进草稿箱，待站主发表** |
 
-**03 的待办**：`node scripts/wechat/build.mjs 2026-09-08-agent-03-risk-levels` 送草稿箱、
-站主发表后回填 `wechat:`。**注意那条链接机器核不了**——微信长链不带 `chksm` 直取弹「环境异常」，
+**03 的待办**：2026-09-08 已用 `draft.mjs` 送进草稿箱，正文 58.1KB、五处内链全部改写成
+公众号永久链接。剩下四步只能人工：后台预览核排版与链接 → 加进合集「AI」（API 做不到）→
+点发表 → 回填 `wechat:`。**草稿 media_id**（要撤回或 `--update` 时用）：
+`ANMvyPTNsZJYdcfdSl5doB1J4xRozaBkUuJSt0j21XbQI-ho-MTHvAPosY7k-ejx`。
+02 那次的 media_id 只活在当次输出里，已经找不回来了，从这篇起记进本文件。**注意那条链接机器核不了**——微信长链不带 `chksm` 直取弹「环境异常」，
 浏览器桥这次也撞在 `wappoc_appmsgcaptcha` 验证墙上，而读已发布链接的 API 对个人主体早已回收
 （见 `guides/WECHAT_SYNC.md`）。回填后只能人眼点一次。
 
