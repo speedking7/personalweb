@@ -3103,6 +3103,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-03.jpg
 date: 2026-09-08
+wechat: https://mp.weixin.qq.com/s/2VTITMrShdw89m7VmVqyPg
 readTime: 12
 excerpt: 定级的对象不是整个 Agent，是它会做的每一个动作，整体按最高的那一个定。这一篇给出四个等级、三道分界线和一套四步定级法，末尾是一张能直接填的定级表。同一条流水线上有个反直觉的结果：只读、只生成的那个动作，可能比会写系统的那个还高。
 ---
