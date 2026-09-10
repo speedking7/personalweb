@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-04.jpg
 date: 2026-09-09
+wechat: https://mp.weixin.qq.com/s/dANIitcgj9ejboExN6VApQ
 readTime: 11
 excerpt: 自动修复一个支付回调的缺陷并发布到生产，四个风险因素全中，按标准过不了任何一道门禁。但出路不是砍掉自动化。这一篇先让你把三个最容易想到的救法试一遍，看它们各自败在哪儿，再把人批准的对象从一句结论换成一份清单。
 ---
