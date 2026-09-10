@@ -93,8 +93,9 @@ def check(path):
         ok = m["spread"] <= BAND_TOL
         gates.append((ok, "背景通铺一色",
                       f"横向最大色差 {m['spread']}" + ("" if ok else
-                      " → 画出了色带/面板。提示词里别用 central two thirds 这类几何措辞，"
-                      "模型会当成要画出来的区域")))
+                      " → 画出了色带/面板。两个诱因：几何措辞（central two thirds "
+                      "会被当成要画出来的区域），或左右物件重量悬殊（空的那侧会被整块另涂一色）。"
+                      "都是重出，后期补不了——见 BLOG_PLAYBOOK 第五节")))
 
     if not m["amber"]:
         gates.append((False, "橙色点存在",
