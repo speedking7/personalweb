@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-05.jpg
 date: 2026-09-10
+wechat: https://mp.weixin.qq.com/s/_kIAj41gdkju2P3jAqu7Rg
 readTime: 10
 excerpt: 前三篇的产出物到这里收口，装进一张二十个字段的项目输入登记表。这一篇逐字段讲怎么填、谁填。真动手你会发现有一半格子自己填不了——而那不是表格的问题，是项目的问题：填不出来的格子就是你现在该去找谁的清单。
 ---
