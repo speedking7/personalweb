@@ -12,7 +12,7 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from cover import SIZE, CROPS, BAND_TOL, is_bg, measure, survival  # noqa: E402
+from cover import SIZE, CROPS, BAND_TOL, is_bg, is_ink, measure, survival  # noqa: E402
 
 # 安全区由最严的那种裁切倒推：1.2:1 中心裁切只保留中间 67%
 SAFE_LO, SAFE_HI = 0.165, 0.835
@@ -70,6 +70,109 @@ def tile(strip, W, H):
         y += sh
         k += 1
     return canvas
+
+
+def flatten_split(im):
+    """检出「整幅被劈成两种底色」并修平。
+
+    2026-09 第 6、7 篇连撞：模型把左右画成两块底色，缝落在正中，横向色差 13~18。
+    提示词层面试过三招（加首句约束、加 avoid 条款、去掉当桌面的横线）全部无效，
+    改 Concept 让两侧长得不一样也只是碰运气——07 篇那张两侧一团石头对一架七级梯，照裂。
+
+    **动手的前提有两条，缺一不做**：缝是单一的竖直阶跃，两侧各自的底色是平的；
+    以及物件的填充色跟底色分得开。第 6 篇那张分不开（物件灰面与底色几乎同色），
+    强行修平会把物件和线条一起提亮，两侧风格当场分家——那一张只能重出。
+    只改与该侧底色同色的像素，其余一个不碰。
+    """
+    W, H = im.size
+    px = im.load()
+    top = max(6, int(H * 0.03))
+
+    col = []
+    for x in range(W):
+        s = [px[x, y] for y in range(0, top, 2)]
+        col.append(tuple(sum(v[i] for v in s) // len(s) for i in range(3)))
+
+    # 找最大的一处相邻阶跃
+    jump, at = 0, None
+    for x in range(1, W):
+        d = max(abs(col[x][i] - col[x - 1][i]) for i in range(3))
+        if d > jump:
+            jump, at = d, x
+    if at is None or jump <= BAND_TOL:
+        return im, ""
+
+    # 缝两侧要各让开一段：缩到 1920 时 LANCZOS 会把硬缝抹开几个像素，
+    # 那几列是中间值，算进去会让「两侧底色平不平」这一步误判成不平。
+    MARGIN = max(8, W // 200)
+    left, right = col[:max(0, at - MARGIN)], col[min(W, at + MARGIN):]
+    if len(left) < W // 10 or len(right) < W // 10:
+        return im, ""
+
+    def tone(part):
+        return tuple(sum(c[i] for c in part) // len(part) for i in range(3))
+
+    def flat(part):
+        return max(max(abs(a[i] - b[i]) for i in range(3))
+                   for a in part[::7] for b in part[::7]) <= BAND_TOL
+
+    lt, rt = tone(left), tone(right)
+    if max(abs(lt[i] - rt[i]) for i in range(3)) <= BAND_TOL:
+        return im, ""
+    if not (flat(left) and flat(right)):
+        return im, "两侧底色本身不平，不是干净的两色劈分，不修"
+
+    # 少数侧向多数侧对齐；等宽时右侧为准
+    # 修改区要盖住过渡带，扫描区必须避开它——那条带子是另一侧的底色，
+    # 扫进来会被当成「物件填充色」，守卫当场误报。
+    if len(left) >= len(right):
+        keep, fix, x0, x1 = lt, rt, at - MARGIN, W
+        sx0, sx1 = at + MARGIN, W
+    else:
+        keep, fix, x0, x1 = rt, lt, 0, at + MARGIN
+        sx0, sx1 = 0, at - MARGIN
+
+    TOL = 10
+    near = lambda p, t: all(abs(p[i] - t[i]) <= TOL for i in range(3))
+
+    # 物件填充色与底色分不开就别动——那是第 6 篇那张的形态
+    fills = {}
+    for x in range(sx0, sx1, 3):
+        for y in range(0, H, 3):
+            p = px[x, y]
+            if is_ink(p) or near(p, fix):
+                continue
+            fills[tuple(v // 6 for v in p)] = fills.get(tuple(v // 6 for v in p), 0) + 1
+    if fills:
+        top_fill = max(fills.items(), key=lambda kv: kv[1])[0]
+        top_fill = tuple(v * 6 + 3 for v in top_fill)
+        if max(abs(top_fill[i] - fix[i]) for i in range(3)) <= TOL * 1.6:
+            return im, ("物件填充色与该侧底色分不开（%s 对 %s），修平会把物件一起提亮 → 只能重出"
+                        % (top_fill, fix))
+
+    out = im.copy()
+    opx = out.load()
+    delta = tuple(keep[i] - fix[i] for i in range(3))
+    for x in range(x0, x1):
+        for y in range(H):
+            p = px[x, y]
+            if near(p, fix):
+                opx[x, y] = tuple(min(255, max(0, p[i] + delta[i])) for i in range(3))
+
+    # 过渡带单独收尾：缩放抹出来的中间值离两侧底色都有四五个单位，
+    # 按 delta 平移追不平，直接把这一段的背景像素设成目标底色。
+    # 带内有线条就不碰——那说明有物件横跨缝隙，动它会伤图。
+    band = range(max(0, at - MARGIN * 2), min(W, at + MARGIN * 2))
+    if not any(is_ink(px[x, y]) for x in band for y in range(0, H, 3)):
+        for x in band:
+            for y in range(H):
+                if is_bg(opx[x, y]):
+                    opx[x, y] = keep
+
+    after = measure(out)["spread"]
+    if after > BAND_TOL:
+        return im, f"修平后横向色差仍为 {after}，回退"
+    return out, f"两色劈分已修平（缝在 {at / W * 100:.0f}%，色差 {jump} → {after}）"
 
 
 def inset(im):
@@ -155,6 +258,11 @@ def main(argv):
 
     im = crop_to_size(im)
     report(im, "裁后")
+
+    im, note = flatten_split(im)
+    if note:
+        print(f"  修平：{note}")
+        report(im, "修平后")
 
     if do_inset:
         im, note = inset(im)
