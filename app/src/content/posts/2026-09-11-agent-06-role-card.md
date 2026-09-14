@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-06.jpg
 date: 2026-09-11
+wechat: https://mp.weixin.qq.com/s/EvQqpiAITmDWTG7eWywg6A
 readTime: 10
 excerpt: 第三部分从角色卡开始。写「它是干什么的」人人都会，难的是写「它不干什么」——而非目标不是它做不到的事，是它做得到但你不许它做的事。这一篇给出角色卡上半张的四行、非目标的两条判据，以及非目标该从你已经填过的三张表里去收，而不是凭空想。
 ---
