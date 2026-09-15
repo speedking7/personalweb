@@ -4222,6 +4222,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-07.jpg
 date: 2026-09-14
+wechat: https://mp.weixin.qq.com/s/huX9qdb4ZxttYhMoWQ8BKQ
 readTime: 10
 excerpt: 把第 03 篇那张六条动作清单按七层归位，拆干净会变成八条。这一篇讲怎么拆到一条只跨一层、层的边界为什么由系统实际有哪些状态决定、七层各自要盯什么，以及禁止动作清单怎么从上一篇的非目标翻译过来，每条都指得出层号。
 ---
