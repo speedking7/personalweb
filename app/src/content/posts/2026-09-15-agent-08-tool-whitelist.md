@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-08.jpg
 date: 2026-09-15
+wechat: https://mp.weixin.qq.com/s/X4P_NhFsbHVh818XIa5Fgw
 readTime: 9
 excerpt: 给它一个「提单工具」，它能提任何一张单。这一篇讲两件事：你给出去的东西为什么总比你以为的大——工具名、系统账号、让它自己拼路径是同一个毛病的三种形态；以及你以为给上了的未必真给上了，界面显示已绑定、它自己说已触发，两样都不算数。
 ---
