@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-09.jpg
 date: 2026-09-16
+wechat: https://mp.weixin.qq.com/s/9dIMAWy_7uD76XcSZ2A7Dw
 readTime: 12
 excerpt: 位置和粒度不是两件事——你把审批点放在哪一步之前，就决定了它一次要管多少。这一篇讲门该放在第一个撤不回来的动作之前、为什么粒度往两头走都会让审批失效、人不点的时候这道门是开是关，以及批完到执行之间那道只能靠机器的校验。
 ---
