@@ -22,7 +22,10 @@
 | 07 | 动作分七层，禁止清单按层写 | ✅ | ✅ 已回填 `wechat:` |
 | 08 | 工具白名单：粒度按四维拆 | ✅ | ✅ 已回填 `wechat:` |
 | 09 | 审批点：放哪儿，一次管多少 | ✅ | ✅ 已回填 `wechat:` |
-| 10 | 日志与版本：记什么，信哪些 | ✅ | **待送草稿箱** |
+| 10 | 日志与版本：记什么，信哪些 | ✅ | **已进草稿箱，待站主发表** |
+
+**10 的待办**：2026-09-17 已送草稿箱，正文 11 处内链全部改写。剩下人工四步同前。
+**草稿 media_id**：`ANMvyPTNsZJYdcfdSl5doLU9800vfJDsE1MKA8tVxPf34BvqVQlGDtN_6VdRstmN`
 
 **05 的待办**：2026-09-10 已送草稿箱，正文三处内链全部改写。剩下人工四步同前。
 **草稿 media_id**：`ANMvyPTNsZJYdcfdSl5doOrxzCOkqolF9Zj7wmcQlNVBR0wiKN3IIGynV6SEXrc3`
