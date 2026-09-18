@@ -4967,7 +4967,8 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-10.jpg
 date: 2026-09-17
-readTime: 17
+wechat: https://mp.weixin.qq.com/s/CV5xa3L8YnSw-157V0a6rg
+readTime: 19
 excerpt: 日志不是一堆字段，是一堆来源不同的东西——系统记下来的、模型写出来的、人点头声明的，三类混在一格里，等于给不可信的那部分镀了一层可信。这一篇讲九项字段各归哪一类、哪两项必须拆成两格、五样东西怎么留版本，以及为什么记全了也不一定算数。
 ---
 
