@@ -111,6 +111,50 @@ def analyze(body):
     }
 
 
+CN_NUM = {"二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6,
+          "七": 7, "八": 8, "九": 9, "十": 10, "十一": 11, "十二": 12}
+# 只拦一种情形：**序数指到表外**——「第四行」而表只有三行。
+# 那一行不存在，读者照着找必定落空，且页面照常渲染，是标准的静默失败。
+# 「四样」「七档」「四档不许引用」这类计数一律不碰：它们可能指产出物、指下一张表、
+# 或指表里的一个子集，误报率极高。天天飘红的闸门等于没有闸门（见 CLAUDE.md scripts/ 那条）。
+# 只认「行」。「第 N 条」在这个系列里几乎全是制度条款引用（《管理办法》第三条），
+# 实测对已发 12 篇全是误报。
+ORD_RE = re.compile(r"第\s*(十[一二]|[二两三四五六七八九十])\s*(行)")
+
+
+def table_count_gate(body):
+    """序数引用越过表尾。只看紧贴表格上下各两行。"""
+    lines = strip_code(body).split("\n")
+    blocks = []
+    i = 0
+    while i < len(lines):
+        if lines[i].lstrip().startswith("|") and i + 1 < len(lines) \
+           and re.match(r"^\s*\|[\s:|-]+\|\s*$", lines[i + 1]):
+            j = i + 2
+            while j < len(lines) and lines[j].lstrip().startswith("|"):
+                j += 1
+            blocks.append((i, j - 1, j - i - 2))
+            i = j
+        else:
+            i += 1
+
+    bad = []
+    for start, end, rows in blocks:
+        for k in (start - 2, start - 1, end + 1, end + 2):
+            if not (0 <= k < len(lines)) or lines[k].lstrip().startswith("|"):
+                continue
+            for word, unit in ORD_RE.findall(lines[k]):
+                n = CN_NUM.get(word)
+                if n and n > rows:
+                    bad.append(f"L{k + 1}「第{word}{unit}」，而那张表只有 {rows} 行")
+
+    ok = not bad
+    return (ok, "序数没指到表外",
+            "没有" if ok
+            else "；".join(bad[:3]) + " → 那一行不存在。多半是删了一行之后，"
+                 "指着它的那句话留在了原地")
+
+
 def gates(path, fm, body, stats):
     """只拦「错了就没救」的静默失败。每条给出下一步该做什么，而非名词解释。"""
     res = []
@@ -210,6 +254,11 @@ def gates(path, fm, body, stats):
         "没有" if not ordered
         else "；".join(ordered[:3]) + " → 公众号版会给条目之间的空行也编上号。"
              "改成二列表格，或手写「一、二、三」。博客版正常，只有公众号版坏")
+
+    # 序数指到表外 —— 删了一行之后，指着它的那句话最容易留在原地。
+    # 第 11 篇删掉症状表一行后仍写「第四行最值得记」，而表只剩三行；
+    # 三轮人工评审都没抓到，站主一眼看出来 —— 正是该交给机器的那种活。
+    add(*table_count_gate(body))
 
     # 「结尾段短于正文均长」刻意不在这里。它是看得见、随时能改的风格问题，
     # 不是静默失败；而且带附录的文章（正文后跟大段代码块）会被误判——
