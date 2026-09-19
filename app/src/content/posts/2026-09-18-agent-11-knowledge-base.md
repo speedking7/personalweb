@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-11.jpg
 date: 2026-09-18
+wechat: https://mp.weixin.qq.com/s/oTHEbhAfG99Nag16vQNyaQ
 readTime: 18
 excerpt: 第 01 篇那句「三份文件都放根目录，第一次搭不用建目录结构」是有有效期的。这一篇讲它什么时候到期、你怎么知道自己已经越过去了、越过去之后目录与索引各管什么，以及这套结构每个月要吃掉谁多少工时——外加一种比没有结构更难查的错。
 ---
