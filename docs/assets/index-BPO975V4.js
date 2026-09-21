@@ -5707,6 +5707,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-12.jpg
 date: 2026-09-19
+wechat: https://mp.weixin.qq.com/s/U6wYlC66QDhGJx45A8FdEg
 readTime: 11
 excerpt: 前十一篇你一行代码没写，已经点出来一个能干活的 Agent。这一篇画清那条线：无代码到哪儿为止、卡点具体卡在哪三处——以及为什么「要不要找工程搭档」这个问题多数人答错，原因是把三处卡点当成了同一种。
 ---
