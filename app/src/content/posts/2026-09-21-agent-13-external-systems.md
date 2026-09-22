@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-13.jpg
 date: 2026-09-21
+wechat: https://mp.weixin.qq.com/s/RjAgvK38INxbjadfuFChSA
 readTime: 12
 excerpt: 上一篇让你写份需求说明去找人。这一篇讲你去了之后会听到什么——「没有接口」「有接口但你没权限」「接口在，但没人维护」，三种听起来都像拒绝，而要找的人完全不同。外加一份申请书该怎么写，和接口真做不出来时那三条退路各自在哪儿收费。
 ---
