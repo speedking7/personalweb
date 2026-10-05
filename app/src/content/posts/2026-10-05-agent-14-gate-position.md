@@ -4,6 +4,7 @@ category: 实战
 tags: [AI, Agent, 实战]
 cover: covers/agent-14.jpg
 date: 2026-10-05
+wechat: https://mp.weixin.qq.com/s/seg9N5eDIX6gXn2AnlQMwg
 readTime: 11
 excerpt: 前面十三篇立了一堆「不许做」。这一篇收口：哪些根本没有位置能拦、门禁放在哪儿才拦得住、以及为什么「它自己跑完门禁告诉你过了」跟「它说我做完了」是同一句话。外加一次实测——门禁没被攻破，是那条带门禁的路自己坏了，它转头走了另一条。
 ---
