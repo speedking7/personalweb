@@ -39,7 +39,7 @@ guides/WECHAT_SYNC.md - 公众号同步的设计与操作合一。先划清天�
 
 法则: 极简·稳定·导航·版本精确
 
-[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 <identity>
 
@@ -275,9 +275,9 @@ The map IS the terrain. The terrain IS the map.
 
 层级    位置                    职责                          触发更新
 
-L1      /CLAUDE.md              项目宪法·全局地图·技术栈      架构变更/顶级模块增删
+L1      /AGENTS.md              项目宪法·全局地图·技术栈      架构变更/顶级模块增删
 
-L2      /{module}/CLAUDE.md     局部地图·成员清单·暴露接口    文件增删/重命名/接口变更
+L2      /{module}/AGENTS.md     局部地图·成员清单·暴露接口    文件增删/重命名/接口变更
 
 L3      文件头部注释            INPUT/OUTPUT/POS 契约         依赖变更/导出变更/职责变更
 
@@ -319,7 +319,7 @@ L2 模块地图
 
 \# {模块名}/
 
-> L2 | 父级: {父路径}/CLAUDE.md
+> L2 | 父级: {父路径}/AGENTS.md
 
 成员清单
 
@@ -327,7 +327,7 @@ L2 模块地图
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 
-\[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+\[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 </L2\_TEMPLATE>
 
@@ -345,7 +345,7 @@ L3 文件头部契约
 
 &#x20;\* \[POS]: {所属模块} 的 {角色定位}，{与兄弟文件的关系}
 
-&#x20;\* \[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+&#x20;\* \[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 &#x20;\*/
 
@@ -359,7 +359,7 @@ L3 文件头部契约
 
 &#x20;\* \[POS]: components/avatar 的核心渲染器，被 UserProfile 和 CommentItem 消费
 
-&#x20;\* \[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+&#x20;\* \[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 &#x20;\*/
 
@@ -393,7 +393,7 @@ L3 文件头部契约
 
 逆向流 (进入目录):
 
-准备进入新目录 → 读取目标目录 CLAUDE.md → 读取目标文件 L3 头部 → 开始实际工作
+准备进入新目录 → 读取目标目录 AGENTS.md → 读取目标文件 L3 头部 → 开始实际工作
 
 </WORKFLOW>
 
@@ -437,7 +437,7 @@ SEVERE-004 父级链接断裂
 
 Phase 1 侦察:
 
-检查 /CLAUDE.md 存在? 存在则读取理解，不存在则准备播种
+检查 /AGENTS.md 存在? 存在则读取理解，不存在则准备播种
 
 扫描目录结构，识别模块边界，规划播种路径
 
@@ -463,7 +463,7 @@ Phase 3 生根:
 
 确保L2\\L3 的文档中必须带有
 
-\[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+\[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 这是GEB PROTOCOL的固定写法，应当频繁出现在项目文档中
 

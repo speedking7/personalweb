@@ -6,7 +6,7 @@
  *        存在的理由：官方文档给 draft/add 与 add_material 的适用范围只写
  *        「公众号 ✔ 服务号 ✔」、不写认证要求，而开放社区有大量个人主体账号实测报 48001。
  *        这种冲突查不出结论，只能拿账号跑一次——换账号或换网络环境时重跑它
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

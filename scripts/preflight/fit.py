@@ -4,7 +4,7 @@
 [OUTPUT]: 对外提供命令行入口，产出 1920x1072 的封面文件
 [POS]: scripts/preflight 里唯一「加工」而非「验收」的一支。cover.py 说图哪儿不合格，
        它负责把图改到合格；改完自动回头跑一遍 cover.py 的判据，不让人凭眼睛验收
-[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 import sys
 from pathlib import Path

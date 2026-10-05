@@ -3,7 +3,7 @@
  * [OUTPUT]: 对外提供 Photo 类型、photos 相册数组、photoCategories 分类清单
  * [POS]: data/ 层的相册数据源，被 pages/Gallery 的网格与灯箱、pages/Home 的统计消费。
  *        photoCategories 由 photos 实时归纳而非硬编码，分类随数据自动增减，不会出现空分类
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 export interface Photo {
   id: string;

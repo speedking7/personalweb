@@ -1,3 +1,15 @@
+/**
+ * [INPUT]: 依赖 @/data/blogs 的 getBlogPost/getBlogPosts 取文章与同分类相关文章，
+ *          依赖 @/lib/views 的 recordView 上报阅读，依赖 react-markdown 与 remark-gfm
+ *          渲染正文（remark-gfm 撑 GFM 表格，2026-09-06 才挂上），
+ *          依赖 @/components/Comments 挂载 giscus 评论区
+ * [OUTPUT]: 对外提供 BlogDetail 页面组件，对应路由 /blog/:id
+ * [POS]: pages/ 层的文章详情页。正文样式不写在这里：.prose 的规则全部手写在
+ *        src/index.css（项目没装 @tailwindcss/typography，prose-* 修饰类是空类）。
+ *        评论区 term 必须传文章 id——HashRouter 下全站 pathname 相同，
+ *        按路径映射会让所有文章共用一个讨论串
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Tag, Loader2 } from 'lucide-react';

@@ -8,7 +8,7 @@
  *          两道出厂不变量；直接执行时为命令行入口，产出 out/{id}.html 与终端发布清单
  * [POS]: scripts/wechat 的编排层。自身不含格式规则——frontmatter 规则在 markdown.ts，
  *        样式在 index.css，链接与图片规则在 links.mjs；它负责把三处串起来，并在出厂前做一道不变量校验
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';

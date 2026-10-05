@@ -1,3 +1,12 @@
+/**
+ * [INPUT]: 依赖 @/data/music 的 songs 曲目数组，依赖 @/components/ui/slider
+ *          做进度与音量条，依赖 lucide-react 图标
+ * [OUTPUT]: 对外提供 Music 页面组件，对应路由 /music
+ * [POS]: pages/ 层的音乐馆，单个 audio 元素驱动的播放器。
+ *        空曲库必须在渲染前拦截：下方直接读 currentSong.url，
+ *        songs 为空时 currentSong 是 undefined，渲染即抛错白屏
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useState, useRef, useEffect } from 'react';
 import {
   Play,

@@ -1,6 +1,6 @@
 # scripts/wechat/
 
-> L2 | 父级: ../../CLAUDE.md
+> L2 | 父级: ../AGENTS.md
 
 把 `app/src/content/posts/` 的文章同步到微信公众号。**做到草稿箱为止，不碰发表**。
 
@@ -140,6 +140,10 @@ md 输出中凡「不该是链接」的地址都用反引号锁成行内代码�
 `collectionUrl` 是公众号合集地址，需人工去后台建合集后填入，留空时正文一旦引用列表页即中断。
 两者填成非公众号链接都会被拦。
 
+`package.json` / `package-lock.json`: 本模块自带的依赖清单与锁定文件（marked、juice、postcss 等），
+刻意独立于 app 的依赖树——本模块与网站运行期无关，理由见文件开头。
+`.env`（凭据）、`out/`（产物）与 `.image-cache.json`（素材缓存）均 gitignore，不入清单。
+
 ## 数据契约
 
 文章 frontmatter 的 `wechat:` 字段记录该文的公众号永久链接，是本工具独有的发布侧元数据。
@@ -160,4 +164,4 @@ frontmatter 的**边界正则**因此有两份（`readWechatUrl` 一份、`markd
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 
-[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

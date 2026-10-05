@@ -10,7 +10,7 @@
  *        分流的**决策**各只有一处（链接 classify、图片 classifyImage），
  *        HTML 与 markdown 两种输出共用它们——公众号后台既能粘贴 HTML 也能导入 markdown，
  *        两条通道的规则必须是同一份
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { Marked } from 'marked';
 

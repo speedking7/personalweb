@@ -1,3 +1,11 @@
+/**
+ * [INPUT]: 依赖 @/components/ui/button，依赖 lucide-react 图标，
+ *          依赖 public/ 下的 avatar.jpg
+ * [OUTPUT]: 对外提供 Hero 区块组件 —— 首屏大头像与简介，按钮锚点滚动到 #projects/#contact
+ * [POS]: sections/ 层旧版单页首页的首屏分区，当前无人引用（pages/Home 内联实现了
+ *        自己的 hero）。它的滚动导航模型与现在的 HashRouter 多页结构不兼容
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useEffect, useRef } from 'react';
 import { ArrowRight, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';

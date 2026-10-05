@@ -1,3 +1,10 @@
+/**
+ * [INPUT]: 无数据依赖，内容全部内联；仅用 react 的 useEffect/useRef 做滚动入场动画
+ * [OUTPUT]: 对外提供 About 区块组件（锚点 #about）
+ * [POS]: sections/ 层旧版单页首页的「关于」分区，当前无人引用——
+ *        pages/Home 内联实现了自己的分区，这套锚点滚动版是改路由式多页之前的旧稿，保留待清理
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useEffect, useRef } from 'react';
 
 const stats = [

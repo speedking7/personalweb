@@ -1,3 +1,10 @@
+/**
+ * [INPUT]: 依赖 @/components/ui 的 button/input/textarea，依赖 lucide-react 图标
+ * [OUTPUT]: 对外提供 Contact 区块组件（锚点 #contact）
+ * [POS]: sections/ 层旧版单页首页的「联系」分区，当前无人引用（pages/Home 内联实现了
+ *        自己的分区）。表单提交只是 alert 假动作，不接任何后端——这也是它被弃用的原因之一
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useEffect, useRef, useState } from 'react';
 import { Github, Linkedin, Twitter, Send, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';

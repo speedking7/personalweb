@@ -1,6 +1,6 @@
 # analytics/
 
-> L2 | 父级: ../CLAUDE.md
+> L2 | 父级: ../AGENTS.md
 
 阅读量计数服务。独立于前端与 server/ 之外的第三块，部署在 Cloudflare Workers。
 
@@ -66,4 +66,4 @@ KV 是最终一致的，并发写会丢计数。对个人博客的量级这是�
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 
-[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

@@ -1,3 +1,10 @@
+/**
+ * [INPUT]: 无数据依赖，技能清单硬编码在文件内；仅用 lucide-react 图标
+ * [OUTPUT]: 对外提供 Skills 区块组件（锚点 #skills）
+ * [POS]: sections/ 层旧版单页首页的「技术栈」分区，当前无人引用（pages/Home 内联实现了
+ *        自己的分区）。清单是脚手架占位内容，非真实技能画像
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useEffect, useRef } from 'react';
 import { Code, Server, Cloud, Wrench } from 'lucide-react';
 

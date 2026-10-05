@@ -5,7 +5,7 @@
  *        差别仅在 term：此处固定为 guestbook，文章页传各自的文章 id。
  *        改造前此页是纯 useState 的假实现——能提交、能显示、刷新即丢，
  *        且数据只存在于访客自己的浏览器里，站主永远收不到
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { useEffect } from 'react';
 import { Comments } from '@/components/Comments';

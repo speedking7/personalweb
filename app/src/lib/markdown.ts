@@ -3,7 +3,7 @@
  * [OUTPUT]: 对外提供 parseBlogMetadata —— 把带 YAML frontmatter 的 markdown 解析为 BlogPost 字段
  * [POS]: lib/ 层的格式解析器，是飞书文档与本地 md 文件的共同入口。
  *        两个数据源必须共用它，否则元数据规则会各自漂移，同一篇文章在两条链路上解析出不同结果
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import type { BlogPost } from '../types/blog';
 

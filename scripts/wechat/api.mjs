@@ -4,7 +4,7 @@
  *          deleteMaterial、WechatApiError
  * [POS]: scripts/wechat 与微信服务端之间的唯一通道。probe.mjs 与 draft.mjs 共用它——
  *        错误码翻译只该有一份，两处各写一遍必然有一处漏掉新码
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

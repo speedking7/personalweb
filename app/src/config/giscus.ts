@@ -4,7 +4,7 @@
  * [POS]: config/ 层的评论系统配置，被 components/Comments 消费。
  *        集中在此是为了让 categoryId 这类需人工获取的值只有一个填写位置；
  *        未配置时 isGiscusReady 为 false，组件据此显式提示而非静默空白
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 export const giscusConfig = {

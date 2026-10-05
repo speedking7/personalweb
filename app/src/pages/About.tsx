@@ -1,3 +1,9 @@
+/**
+ * [INPUT]: 无数据依赖，内容全部内联；仅用 lucide-react 图标
+ * [OUTPUT]: 对外提供 About 页面组件，对应路由 /about
+ * [POS]: pages/ 层的关于页，纯静态自我介绍（履历、技能、爱好），不触碰任何数据源
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useEffect } from 'react';
 import {
   Code,

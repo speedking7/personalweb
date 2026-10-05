@@ -7,7 +7,7 @@
  * [POS]: scripts/wechat 的发布侧入口，与 build.mjs（产文件）并列。
  *        走到草稿箱为止是刻意的：freepublish 对个人主体已被官方回收，
  *        而公众号发布不可逆、正文发出去改不了，那一下本就该由人来点
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

@@ -4,7 +4,7 @@
 [OUTPUT]: 对外提供命令行入口，以及 measure() 供 fit.py 复用同一套判据
 [POS]: scripts/preflight 的封面验收器，与 prose.py 分管「图」与「文字」两侧；
        判据来自 BLOG_PLAYBOOK.md 第五节的五条经验与 OPERATIONS.md 的发布流程
-[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 import sys
 from pathlib import Path

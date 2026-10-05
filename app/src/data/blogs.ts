@@ -14,7 +14,7 @@
  *        曾经 getTags 与 getCategories 各自实现了一套 catch 式降级，catch 永不触发，
  *        导致标签云长期为空、分类栏显示凭空捏造的清单。派生同时立下一条不变量：
  *        标签与分类只能来自真实显示的文章，不可能出现零文章的标签
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { feishuBlogClient } from '@/lib/feishu';
 import { parseBlogMetadata } from '@/lib/markdown';

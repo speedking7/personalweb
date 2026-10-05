@@ -1,3 +1,13 @@
+/**
+ * [INPUT]: 依赖 @/data/blogs 的 getBlogPosts/staticBlogPosts 取最新文章，
+ *          依赖 @/data/music 的 songs 与 @/data/photos 的 photos 填统计卡片，
+ *          依赖 @/components/ui/button
+ * [OUTPUT]: 对外提供 Home 页面组件，对应路由 /
+ * [POS]: pages/ 层的首页。首屏直接用 staticBlogPosts 渲染最新文章——不等飞书返回，
+ *        getBlogPosts 成功后再替换；这个「先静态后远端」的次序保证弱网或飞书
+ *        挂掉时首页依旧完整。音乐、照片统计只读数组长度，不走网络
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, Music, Image, Github, Twitter, Mail } from 'lucide-react';

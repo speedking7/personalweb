@@ -9,7 +9,7 @@
  *        不读也不改真实文章的发布状态，也不在素材库留任何东西。
  *        存在的理由：链接分流错了不会在生成时报出来，要等文章发出去、读者点不动才暴露，
  *        图片更糟——错了直接是读者眼前一个红叉，而公众号正文发布后不可修改
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { Marked } from 'marked';
 import { createLinkRewriter } from './links.mjs';

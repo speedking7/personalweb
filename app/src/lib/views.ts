@@ -5,7 +5,7 @@
  * [POS]: lib/ 层的埋点发送器，被 pages/BlogDetail 在文章加载成功后调用一次。
  *        与 lib/feishu、lib/markdown 是兄弟关系但互不依赖：它不参与任何渲染路径，
  *        拿掉它页面照常工作。这个主次关系是刻意的，见下方注释
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 /**

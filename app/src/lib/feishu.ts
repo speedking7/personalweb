@@ -1,6 +1,14 @@
 /**
- * 飞书 API 集成模块
- * 用于从飞书知识库获取博客内容
+ * [INPUT]: 依赖 @/types/blog 的 BlogPost 契约，依赖 ./markdown 的 parseBlogMetadata
+ *          解析 frontmatter，依赖 VITE_FEISHU_WIKI_TOKEN 等公开环境变量
+ * [OUTPUT]: 对外提供 FeishuBlogClient 类与 feishuBlogClient 单例，
+ *           重新导出 BlogPost 类型
+ * [POS]: lib/ 层的飞书主源客户端，data/blogs 的唯一上游。
+ *        appSecret 刻意不在此读取——VITE_ 前缀的含义就是「交给浏览器」，
+ *        密钥只存在于 server/.env，全部飞书调用经 /api/feishu 代理完成。
+ *        fetchBlogPosts 失败时不抛异常，只返回缓存或空数组——
+ *        这决定了 data/blogs 的降级判据必须是「结果为空」而非「捕获到异常」
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 import type { BlogPost } from '../types/blog';

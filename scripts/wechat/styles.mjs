@@ -3,7 +3,7 @@
  * [OUTPUT]: 对外提供 buildStylesheet —— 返回喂给 juice 做内联化的完整 CSS 文本
  * [POS]: scripts/wechat 的样式来源层。刻意不自带正文样式表：
  *        index.css 是站内正文样式的唯一出处，另写一份必然与博客分家
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { readFileSync } from 'node:fs';
 import postcss from 'postcss';

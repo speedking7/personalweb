@@ -4,7 +4,7 @@
  * [POS]: components/ 层的评论挂载器，被 pages/BlogDetail 与 pages/Guestbook 共用。
  *        必须由调用方显式传 term：本站是 HashRouter，所有路由的 pathname 都相同，
  *        若沿用 giscus 默认的 pathname 映射，全站文章会共用同一个讨论串
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import { useEffect, useRef } from 'react';
 import { giscusConfig, isGiscusReady } from '@/config/giscus';

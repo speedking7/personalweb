@@ -1,3 +1,10 @@
+/**
+ * [INPUT]: 依赖 react-router-dom 的 Link/useLocation 判定并跳转路由，依赖 lucide-react 图标
+ * [OUTPUT]: 对外提供 Navbar 组件 —— 全站固定顶栏，含移动端折叠菜单
+ * [POS]: components/ 层的全局导航，由 App.tsx 挂载在 Routes 之外，七个路由页面共享。
+ *        与 sections/Navbar 同名不同物：那个是旧版单页首页的锚点滚动导航，当前无人引用
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Home, BookOpen, Music, Image, MessageSquare, User } from 'lucide-react';

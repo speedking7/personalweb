@@ -1,3 +1,12 @@
+/**
+ * [INPUT]: 依赖 @/data/blogs 的 getBlogPosts/getCategories/getTags 取文章与聚合，
+ *          依赖 @/components/ui/input 的搜索框
+ * [OUTPUT]: 对外提供 Blog 页面组件，对应路由 /blog
+ * [POS]: pages/ 层的博客列表页，data/blogs 双源数据的主要消费者之一。
+ *        分类栏、标签云、归档全部由真实文章聚合而来，不写死；
+ *        搜索与筛选在客户端做，不再回数据源
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Clock, Tag, Search, Loader2 } from 'lucide-react';

@@ -1,3 +1,10 @@
+/**
+ * [INPUT]: 依赖 @/data/photos 的 photos/photoCategories，依赖 lucide-react 图标
+ * [OUTPUT]: 对外提供 Gallery 页面组件，对应路由 /gallery
+ * [POS]: pages/ 层的相册页，瀑布流网格 + 灯箱浏览（含键盘左右切换与 Esc 关闭）。
+ *        分类筛选直接消费 photoCategories——它由 photos 实时归纳，不会出现空分类
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Calendar, MapPin } from 'lucide-react';
 import { photos, photoCategories } from '@/data/photos';

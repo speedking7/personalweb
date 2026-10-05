@@ -1,6 +1,12 @@
 /**
- * 飞书 API 代理服务器
- * 用于安全地代理飞书 API 请求，避免暴露 App Secret
+ * [INPUT]: 依赖 server/.env 的 FEISHU_APP_ID、FEISHU_APP_SECRET、PORT、CORS_ORIGIN，
+ *          依赖 express、cors、node-cache
+ * [OUTPUT]: 对外提供六个端点：POST /api/feishu/auth、GET /api/feishu/wiki/:wikiToken/nodes、
+ *          GET /api/feishu/docx/:docToken/raw、GET /api/feishu/docx/:docToken/blocks、
+ *          POST /api/feishu/cache/clear、GET /health，以及 default 导出的 Express app
+ * [POS]: server/ 的唯一实现文件，本地开发期由 app 的 Vite proxy 经 /api/feishu 消费。
+ *        存在的唯一理由是 app_secret 不可下发浏览器，node-cache（600s）顺带吸收飞书接口限流
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 import 'dotenv/config';

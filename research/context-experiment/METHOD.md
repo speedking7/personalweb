@@ -2,7 +2,7 @@
 
 被测项目：personalweb（React 19 + TS + Vite 博客）
 运行器：claude CLI 2.1.232，`--model sonnet --tools ""`（关工具，防止它自己去读文件）
-工作目录：/tmp/ctxexp（不含 CLAUDE.md，避免项目地图泄漏进 A、B 两组）
+工作目录：/tmp/ctxexp（不含 AGENTS.md，避免项目地图泄漏进 A、B 两组）
 每组 20 次，共 60 次。
 
 ## 三组上下文
@@ -11,7 +11,7 @@
 |---|---|---|---|
 | A | types/blog.ts + lib/markdown.ts + data/blogs.ts | 12,381 | ~4.1k |
 | B | 整个 app/src（80 个文件，含 53 个 shadcn 基元） | 291,742 | ~97k |
-| C | A 的 3 个文件 + 项目地图 CLAUDE.md | 27,012 | ~9.0k |
+| C | A 的 3 个文件 + 项目地图 AGENTS.md | 27,012 | ~9.0k |
 
 **关键设计：B 是 A 的严格超集。** A 的三个文件一字不差地在 B 里。
 因此若 B 表现更差，唯一解释是稀释——不可能是信息缺失。
@@ -51,7 +51,7 @@ v2 改为按行为判定，重打全部样本。
 
 files_existing / files_new / touch_feishu_ts / touch_page / touch_ui_prim / chars
 
-**三、我自己拿引文当证据。** 看到 C/01 那句「按 CLAUDE.md 里写的……不用碰 feishu.ts」，
+**三、我自己拿引文当证据。** 看到 C/01 那句「按 AGENTS.md 里写的……不用碰 feishu.ts」，
 我立刻得出「地图抑制了怀疑」的结论。量化之后：A 与 C 在「表达存疑」上都是 7/20，
 裸奔交付都是 13/20，Fisher p=1.0000，毫无差异。
 一条漂亮的引文让我跳过了统计——这正是本实验要批判的行为。

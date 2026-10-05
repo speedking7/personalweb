@@ -6,7 +6,7 @@
  *        基础设施上，部署一次要走登录、建 KV、存 secret 四步，
  *        把逻辑错误留到那时候才发现，代价远高于在这里跑一遍。
  *        它用内存对象顶替 KV，因此不碰网络、不需要任何凭据
- * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 import vm from 'node:vm';
 import worker from '../src/counter.js';

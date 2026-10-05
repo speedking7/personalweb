@@ -1,3 +1,10 @@
+/**
+ * [INPUT]: 无依赖，纯静态 JSX
+ * [OUTPUT]: 对外提供 Footer 组件 —— 深色页脚（版权与占位链接）
+ * [POS]: sections/ 层旧版单页首页的页脚，当前无人引用（pages/Home 内联了自己的 footer）。
+ *        隐私政策与使用条款两个链接指向 #，是占位
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 export function Footer() {
   return (
     <footer className="bg-[#1a1a1a] border-t border-[#2a2a2a]">

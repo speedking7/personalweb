@@ -1,3 +1,11 @@
+/**
+ * [INPUT]: 依赖 @/components/ui/button，依赖 lucide-react 图标
+ * [OUTPUT]: 对外提供 Navbar 组件 —— 锚点滚动式顶栏（#about/#projects/#skills/#contact）
+ * [POS]: sections/ 层旧版单页首页的导航，当前无人引用。与 components/Navbar 同名不同物：
+ *        在用的是后者（react-router 路由跳转），这个是锚点滚动模型，
+ *        与现在的 HashRouter 多页结构不兼容
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ */
 import { useState, useEffect } from 'react';
 import { Menu, X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
